@@ -9,29 +9,38 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-
-      - name: Validate manifest
+      - name: Validate manifest version matches tag
         run: |
-          python -c "import json; json.load(open('custom_components/task_timers/manifest.json'))"
+          python3 -c "
+          import json, sys
+          with open('custom_components/task_timers/manifest.json') as f:
+              manifest = json.load(f)
+          tag = '${{ github.ref_name }}'.lstrip('v')
+          if manifest['version'] != tag:
+              print(f'ERROR: manifest version {manifest[\"version\"]} does not match tag {tag}')
+              sys.exit(1)
+          print(f'Version OK: {manifest[\"version\"]}')
+          "
+
+      - name: Create zip
+        run: |
+          cd custom_components
+          zip -r ../task_timers.zip task_timers/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: task_timers.zip
+          generate_release_notes: true
 
   hacs:
-    needs: release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: HACS Action
+      - name: HACS validation
         uses: hacs/action@main
         with:
           category: integration
