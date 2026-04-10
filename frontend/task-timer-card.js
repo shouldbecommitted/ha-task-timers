@@ -27,7 +27,12 @@ class TaskTimerCard extends LitElement {
     super.connectedCallback();
     this._loading = true;
     await this._fetchTimers();
-    setInterval(() => this._fetchTimers(), 60000); // Refresh every minute
+    this._interval = setInterval(() => this._fetchTimers(), 60000); // Refresh every minute
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    clearInterval(this._interval);
   }
 
   async _fetchTimers() {

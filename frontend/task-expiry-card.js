@@ -23,7 +23,12 @@ class TaskExpiryCard extends LitElement {
     super.connectedCallback();
     this._loading = true;
     await this._fetchTimers();
-    setInterval(() => this._fetchTimers(), 300000); // Refresh every 5 minutes
+    this._interval = setInterval(() => this._fetchTimers(), 300000); // Refresh every 5 minutes
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    clearInterval(this._interval);
   }
 
   async _fetchTimers() {

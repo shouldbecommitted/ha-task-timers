@@ -1,11 +1,11 @@
 """Storage handler for Task Timers."""
-import json
 import logging
-from datetime import datetime, timedelta
+import uuid
 from typing import Any
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.storage import STORAGE_DIR
+from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
 
 from .const import STORAGE_KEY, STORAGE_VERSION
 
@@ -18,12 +18,7 @@ class TaskTimersStorage:
     def __init__(self, hass: HomeAssistant):
         """Initialize storage."""
         self.hass = hass
-        self.store = hass.helpers.storage.Store(
-            STORAGE_VERSION,
-            STORAGE_KEY,
-            atomic_writes=True,
-            json_encoder=self._json_encoder,
-        )
+        self.store = Store(hass, STORAGE_VERSION, STORAGE_KEY, atomic_writes=True)
         self.data = {}
 
     async def async_load(self) -> dict[str, Any]:
@@ -32,7 +27,7 @@ class TaskTimersStorage:
             data = await self.store.async_load()
             if data:
                 self.data = data
-                _LOGGER.debug(f"Loaded {len(self.data)} timers from storage")
+                _LOGGER.debug(f"Loaded {len(self.data.get('timers', []))} timers from storage")
             else:
                 self.data = {"timers": [], "history": []}
                 await self.async_save()
@@ -52,13 +47,12 @@ class TaskTimersStorage:
     def add_timer(self, timer_config: dict[str, Any]) -> str:
         """Add a new timer and return its ID."""
         timers = self.data.get("timers", [])
-        
-        # Generate ID (timestamp-based)
-        timer_id = str(int(datetime.now().timestamp() * 1000))
-        
+
+        timer_id = str(uuid.uuid4())
+
         timer = {
             "id": timer_id,
-            "created_at": datetime.now().isoformat(),
+            "created_at": dt_util.now().isoformat(),
             **timer_config,
         }
         timers.append(timer)
@@ -67,8 +61,7 @@ class TaskTimersStorage:
 
     def get_timer(self, timer_id: str) -> dict[str, Any] | None:
         """Get a timer by ID."""
-        timers = self.data.get("timers", [])
-        for timer in timers:
+        for timer in self.data.get("timers", []):
             if timer["id"] == timer_id:
                 return timer
         return None
@@ -76,7 +69,7 @@ class TaskTimersStorage:
     def update_timer(self, timer_id: str, updates: dict[str, Any]) -> bool:
         """Update a timer and return success."""
         timers = self.data.get("timers", [])
-        for i, timer in enumerate(timers):
+        for timer in timers:
             if timer["id"] == timer_id:
                 timer.update(updates)
                 self.data["timers"] = timers
@@ -86,24 +79,20 @@ class TaskTimersStorage:
     def delete_timer(self, timer_id: str) -> bool:
         """Delete a timer and return success."""
         timers = self.data.get("timers", [])
-        original_len = len(timers)
         self.data["timers"] = [t for t in timers if t["id"] != timer_id]
-        return len(self.data["timers"]) < original_len
+        return len(self.data["timers"]) < len(timers)
 
     def list_timers(self) -> list[dict[str, Any]]:
         """Get all timers."""
         return self.data.get("timers", [])
 
-    def add_history_entry(self, timer_id: str, action: str, timestamp: datetime | None = None) -> None:
+    def add_history_entry(self, timer_id: str, action: str) -> None:
         """Add a history entry for timer action."""
-        if timestamp is None:
-            timestamp = datetime.now()
-        
         history = self.data.get("history", [])
         entry = {
             "timer_id": timer_id,
             "action": action,  # 'reset', 'created', 'expired'
-            "timestamp": timestamp.isoformat(),
+            "timestamp": dt_util.now().isoformat(),
         }
         history.append(entry)
         # Keep last 1000 entries
@@ -116,10 +105,3 @@ class TaskTimersStorage:
         history = self.data.get("history", [])
         timer_history = [h for h in history if h["timer_id"] == timer_id]
         return timer_history[-limit:]
-
-    @staticmethod
-    def _json_encoder(obj: Any) -> Any:
-        """JSON encoder for datetime objects."""
-        if isinstance(obj, datetime):
-            return obj.isoformat()
-        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")

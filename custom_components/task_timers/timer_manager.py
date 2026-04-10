@@ -4,11 +4,23 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from croniter import croniter
+from homeassistant.util import dt as dt_util
 
 from .const import TIMER_ONE_TIME, TIMER_RECURRING
 from .storage import TaskTimersStorage
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _parse_dt(value: str | None) -> datetime | None:
+    """Parse an ISO datetime string, returning a timezone-aware datetime."""
+    if not value:
+        return None
+    dt = dt_util.parse_datetime(value)
+    if dt is not None and dt.tzinfo is None:
+        # Legacy naive datetime stored without timezone — assume UTC
+        dt = dt.replace(tzinfo=dt_util.UTC)
+    return dt
 
 
 class Timer:
@@ -36,19 +48,18 @@ class Timer:
     @property
     def next_due(self) -> datetime:
         """Get next due date/time."""
-        return datetime.fromisoformat(self.data.get("next_due"))
+        dt = _parse_dt(self.data.get("next_due"))
+        return dt if dt is not None else dt_util.now()
 
     @property
     def last_reset(self) -> datetime | None:
         """Get last reset timestamp."""
-        if last_reset_str := self.data.get("last_reset"):
-            return datetime.fromisoformat(last_reset_str)
-        return None
+        return _parse_dt(self.data.get("last_reset"))
 
     @property
     def remaining(self) -> timedelta:
         """Get time remaining until due."""
-        return self.next_due - datetime.now()
+        return self.next_due - dt_util.now()
 
     @property
     def is_expired(self) -> bool:
@@ -57,27 +68,34 @@ class Timer:
 
     @property
     def is_warning(self) -> bool:
-        """Check if timer is in warning (expiring soon)."""
+        """Check if timer is in warning period (expiring soon but not yet expired)."""
         warning_days = self.data.get("warning_days", 7)
         return 0 < self.remaining.total_seconds() < (warning_days * 86400)
 
+    @property
+    def warning_days(self) -> int:
+        """Get configured warning days for this timer."""
+        return self.data.get("warning_days", 7)
+
     def reset(self, storage: TaskTimersStorage) -> None:
         """Reset the timer to next due date."""
-        self.data["last_reset"] = datetime.now().isoformat()
-        
+        now = dt_util.now()
+        self.data["last_reset"] = now.isoformat()
+
         if self.timer_type == TIMER_RECURRING:
             self.data["next_due"] = self._calculate_next_due().isoformat()
         else:
-            # One-time timer expires after reset
-            self.data["next_due"] = (datetime.now() + timedelta(days=365*100)).isoformat()
-        
+            # One-time timer: mark as completed rather than scheduling far future
+            self.data["completed"] = True
+            self.data["completed_at"] = now.isoformat()
+
         storage.update_timer(self.id, self.data)
         storage.add_history_entry(self.id, "reset")
 
     def _calculate_next_due(self) -> datetime:
         """Calculate next due date based on schedule."""
-        now = datetime.now()
-        
+        now = dt_util.now()
+
         # Cron-based scheduling
         if cron_pattern := self.data.get("cron_pattern"):
             try:
@@ -85,16 +103,16 @@ class Timer:
                 return cron.get_next(datetime)
             except Exception as err:
                 _LOGGER.error(f"Invalid cron pattern for {self.name}: {err}")
-        
+
         # Interval-based scheduling
         interval_days = self.data.get("interval_days", 0)
         interval_hours = self.data.get("interval_hours", 0)
-        
+
         if interval_days or interval_hours:
-            delta = timedelta(days=interval_days, hours=interval_hours)
-            return now + delta
-        
+            return now + timedelta(days=interval_days, hours=interval_hours)
+
         # No schedule found, default to 30 days
+        _LOGGER.warning(f"No schedule configured for timer '{self.name}', defaulting to 30 days")
         return now + timedelta(days=30)
 
 
@@ -111,55 +129,53 @@ class TimerManager:
         """Load all timers from storage."""
         await self.storage.async_load()
         self.timers.clear()
-        
+
         for timer_data in self.storage.list_timers():
             timer = Timer(timer_data)
             self.timers[timer.id] = timer
-        
+
         _LOGGER.debug(f"Loaded {len(self.timers)} timers")
 
     async def async_save(self) -> None:
         """Save all timers to storage."""
         await self.storage.async_save()
 
-    def create_timer(self, name: str, timer_type: str, **kwargs) -> Timer:
+    def create_timer(self, name: str, timer_type: str, **kwargs) -> "Timer":
         """Create and return a new timer."""
+        interval_days = kwargs.get("interval_days", 30)
         config = {
             "name": name,
             "type": timer_type,
-            "next_due": (datetime.now() + timedelta(days=kwargs.get("interval_days", 30))).isoformat(),
+            "next_due": (dt_util.now() + timedelta(days=interval_days)).isoformat(),
             **kwargs,
         }
-        
+
         timer_id = self.storage.add_timer(config)
         timer = Timer(self.storage.get_timer(timer_id))
         self.timers[timer_id] = timer
         self.storage.add_history_entry(timer_id, "created")
-        
+
         _LOGGER.info(f"Created timer: {name} (ID: {timer_id})")
         return timer
 
-    def get_timer(self, timer_id: str) -> Timer | None:
+    def get_timer(self, timer_id: str) -> "Timer | None":
         """Get a timer by ID."""
         return self.timers.get(timer_id)
 
-    def list_timers(self) -> list[Timer]:
-        """Get all timers sorted by next due date."""
-        return sorted(self.timers.values(), key=lambda t: t.next_due)
+    def list_timers(self) -> list["Timer"]:
+        """Get all active timers sorted by next due date."""
+        return sorted(
+            (t for t in self.timers.values() if not t.data.get("completed")),
+            key=lambda t: t.next_due,
+        )
 
-    def list_expired_timers(self) -> list[Timer]:
+    def list_expired_timers(self) -> list["Timer"]:
         """Get all expired timers."""
-        return [t for t in self.timers.values() if t.is_expired]
+        return [t for t in self.list_timers() if t.is_expired]
 
-    def list_warning_timers(self, days_ahead: int = 7) -> list[Timer]:
-        """Get timers expiring within days_ahead."""
-        now = datetime.now()
-        cutoff = now + timedelta(days=days_ahead)
-        
-        return [
-            t for t in self.timers.values()
-            if now < t.next_due <= cutoff
-        ]
+    def list_warning_timers(self) -> list["Timer"]:
+        """Get timers within their individual warning periods."""
+        return [t for t in self.list_timers() if t.is_warning]
 
     def reset_timer(self, timer_id: str) -> bool:
         """Reset timer and return success."""
