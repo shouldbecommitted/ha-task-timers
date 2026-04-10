@@ -1,9 +1,14 @@
 """Task Timers integration setup."""
+from pathlib import Path
+
 import voluptuous as vol
 from homeassistant.components import websocket_api
+from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
+from homeassistant.loader import async_get_integration
 
 from .const import DOMAIN, LOGGER, SERVICE_CREATE_TIMER, SERVICE_DELETE_TIMER, SERVICE_RESET_TIMER
 from .coordinator import TaskTimersCoordinator
@@ -11,6 +16,9 @@ from .storage import TaskTimersStorage
 from .timer_manager import TimerManager
 
 PLATFORMS: list = []
+
+URL_BASE = f"/{DOMAIN}_files"
+CARDS = ("task-timer-card.js", "task-expiry-card.js")
 
 CREATE_TIMER_SCHEMA = vol.Schema({
     vol.Required("name"): cv.string,
@@ -64,7 +72,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register WebSocket commands
     websocket_api.async_register_command(hass, ws_list_timers)
 
+    # Register frontend cards as static paths and load them in the frontend
+    await _register_frontend(hass)
+
     return True
+
+
+async def _register_frontend(hass: HomeAssistant) -> None:
+    """Serve bundled Lovelace cards and register them with the frontend."""
+    integration = await async_get_integration(hass, DOMAIN)
+    version = integration.version
+    www_dir = Path(__file__).parent / "www"
+
+    static_paths = [
+        StaticPathConfig(f"{URL_BASE}/{card}", str(www_dir / card), False)
+        for card in CARDS
+    ]
+    await hass.http.async_register_static_paths(static_paths)
+
+    for card in CARDS:
+        add_extra_js_url(hass, f"{URL_BASE}/{card}?ver={version}")
+        LOGGER.debug(f"Registered frontend card: {card} (v{version})")
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

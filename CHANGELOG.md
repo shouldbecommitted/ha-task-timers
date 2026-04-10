@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-04-10
+
+### Fixed
+- Lovelace cards (`task-timer-card`, `task-expiry-card`) were never installed by HACS — they lived at `frontend/` outside the integration directory, so HACS skipped them. Moved them into `custom_components/task_timers/www/` so they ship with the integration.
+- Cards are now auto-registered as static paths and added as extra JS URLs at startup, so they appear in the "Add card" picker without any manual Lovelace resource configuration. URL is cache-busted with the integration version.
+
 ## [1.0.4] - 2026-04-10
 
 ### Added
