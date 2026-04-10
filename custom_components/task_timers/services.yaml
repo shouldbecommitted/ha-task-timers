@@ -1,0 +1,82 @@
+create_timer:
+  name: Create timer
+  description: Create a new task timer. A sensor entity is added immediately.
+  fields:
+    name:
+      name: Name
+      description: Human-readable timer name (becomes the sensor's friendly name).
+      required: true
+      example: "AC Filter"
+      selector:
+        text:
+    type:
+      name: Type
+      description: One-time (completes on reset) or recurring (rolls forward on reset).
+      required: false
+      default: recurring
+      selector:
+        select:
+          options:
+            - one_time
+            - recurring
+    interval_days:
+      name: Interval days
+      description: Days between due dates (recurring only).
+      required: false
+      default: 0
+      example: 90
+      selector:
+        number:
+          min: 0
+          max: 3650
+          mode: box
+    interval_hours:
+      name: Interval hours
+      description: Hours between due dates (recurring only, combines with interval_days).
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 23
+          mode: box
+    cron_pattern:
+      name: Cron pattern
+      description: Optional cron expression. Overrides interval_days/interval_hours.
+      required: false
+      example: "0 0 1 * *"
+      selector:
+        text:
+    warning_days:
+      name: Warning days
+      description: Flag the timer as "warning" this many days before the due date.
+      required: false
+      default: 7
+      selector:
+        number:
+          min: 0
+          max: 365
+          mode: box
+
+reset_timer:
+  name: Reset timer
+  description: Reset a task timer — recurring rolls forward, one-time marks completed.
+  fields:
+    timer_id:
+      name: Timer ID
+      description: UUID of the timer (found in the sensor's attributes.timer_id).
+      required: true
+      example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      selector:
+        text:
+
+delete_timer:
+  name: Delete timer
+  description: Permanently delete a task timer and its sensor entity.
+  fields:
+    timer_id:
+      name: Timer ID
+      description: UUID of the timer to delete.
+      required: true
+      selector:
+        text:

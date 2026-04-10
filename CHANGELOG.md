@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-04-10
+
+### Added
+- **Sidebar admin panel** — a "Task Timers" entry now appears in HA's sidebar. Click it to open a full-page admin UI for creating, editing, resetting and deleting timers (no Developer Tools → Services trips required). Ships as a same-origin static HTML page registered via `frontend.async_register_built_in_panel` with `component_name="iframe"`.
+- **REST API** (`views.py`) backing the panel: `GET /api/task_timers/list`, `POST /api/task_timers/create`, `POST /api/task_timers/update/{timer_id}`, `POST /api/task_timers/reset/{timer_id}`, `POST /api/task_timers/delete/{timer_id}`. All require HA auth (`requires_auth = True`).
+- **`services.yaml`** describing the `create_timer` / `reset_timer` / `delete_timer` services with proper field selectors, defaults, and examples. Developer Tools → Services now shows a real form instead of a blank textarea. Also silences the `Failed to load services.yaml for integration: task_timers` warning in `home-assistant.log`.
+
+### Changed
+- Admin panel lifts HA's access token from `localStorage["hassTokens"]` (same-origin iframe) so it authenticates correctly without a hand-pasted long-lived token — fixes the broken `sessionStorage.getItem("ha_auth_token")` in the old `frontend/admin-panel.html` that never worked.
+- Panel HTML rewritten with light/dark theming via `prefers-color-scheme`, status colouring (expired/warning/normal), toast notifications, a proper edit-populates-form flow, and a 30s auto-refresh.
+
+### Removed
+- Orphaned top-level `frontend/admin-panel.html` — it never shipped via HACS (wrong location) and called REST endpoints that didn't exist. Replaced by the working version under `custom_components/task_timers/www/admin-panel.html`.
+
 ## [1.1.0] - 2026-04-10
 
 ### Changed

@@ -1,5 +1,9 @@
 """Task Timers integration setup."""
+from pathlib import Path
+
 import voluptuous as vol
+from homeassistant.components import frontend
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -9,8 +13,13 @@ from .const import DOMAIN, LOGGER, SERVICE_CREATE_TIMER, SERVICE_DELETE_TIMER, S
 from .coordinator import TaskTimersCoordinator
 from .storage import TaskTimersStorage
 from .timer_manager import TimerManager
+from .views import register_views
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
+
+PANEL_URL_PATH = "task-timers"
+PANEL_STATIC_URL = f"/{DOMAIN}_panel"
+PANEL_FILE = "admin-panel.html"
 
 CREATE_TIMER_SCHEMA = vol.Schema({
     vol.Required("name"): cv.string,
@@ -61,10 +70,39 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register services
     _register_services(hass, timer_manager, storage)
 
+    # REST views, static panel assets, and sidebar panel — once per HA instance
+    await _async_register_admin_panel(hass)
+
     # Forward to sensor platform — each timer becomes a TIMESTAMP sensor entity
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
+
+
+async def _async_register_admin_panel(hass: HomeAssistant) -> None:
+    """Register REST views, static file path, and sidebar panel (idempotent)."""
+    if hass.data[DOMAIN].get("_panel_registered"):
+        return
+
+    register_views(hass)
+
+    www_dir = Path(__file__).parent / "www"
+    await hass.http.async_register_static_paths([
+        StaticPathConfig(PANEL_STATIC_URL, str(www_dir), False)
+    ])
+
+    if PANEL_URL_PATH not in hass.data.get("frontend_panels", {}):
+        frontend.async_register_built_in_panel(
+            hass,
+            component_name="iframe",
+            sidebar_title="Task Timers",
+            sidebar_icon="mdi:clipboard-text-clock-outline",
+            frontend_url_path=PANEL_URL_PATH,
+            config={"url": f"{PANEL_STATIC_URL}/{PANEL_FILE}"},
+            require_admin=False,
+        )
+
+    hass.data[DOMAIN]["_panel_registered"] = True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -72,6 +110,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     LOGGER.debug(f"Unloading Task Timers entry: {entry.entry_id}")
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
+        if PANEL_URL_PATH in hass.data.get("frontend_panels", {}):
+            frontend.async_remove_panel(hass, PANEL_URL_PATH)
         hass.data[DOMAIN].clear()
     return unload_ok
 

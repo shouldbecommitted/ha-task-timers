@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task Timers — Admin</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f5f5;
+      --surface: #ffffff;
+      --fg: #1f1f1f;
+      --fg-muted: #6b7280;
+      --border: #e0e0e0;
+      --primary: #1976d2;
+      --primary-hover: #1565c0;
+      --danger: #d32f2f;
+      --danger-hover: #c62828;
+      --success-bg: #c8e6c9;
+      --success-fg: #2e7d32;
+      --warn-bg: #fff3e0;
+      --warn-fg: #ef6c00;
+      --error-bg: #ffcdd2;
+      --error-fg: #c62828;
+      --shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111418;
+        --surface: #1c1f24;
+        --fg: #e8e8e8;
+        --fg-muted: #9aa0a6;
+        --border: #2a2e34;
+        --shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+      }
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+    header {
+      background: var(--surface);
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    h1 { margin-bottom: 6px; color: var(--primary); }
+    header p { color: var(--fg-muted); margin-bottom: 14px; }
+
+    .button-group { display: flex; gap: 10px; }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.05s;
+    }
+    button:active { transform: translateY(1px); }
+
+    button.primary { background: var(--primary); color: #fff; }
+    button.primary:hover { background: var(--primary-hover); }
+    button.secondary { background: var(--border); color: var(--fg); }
+    button.secondary:hover { filter: brightness(0.95); }
+    button.danger { background: var(--danger); color: #fff; }
+    button.danger:hover { background: var(--danger-hover); }
+
+    .timers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+      gap: 16px;
+    }
+
+    .timer-card {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--primary);
+    }
+    .timer-card.expired { border-left-color: var(--danger); }
+    .timer-card.warning { border-left-color: var(--warn-fg); }
+
+    .timer-card h3 { margin-bottom: 10px; color: var(--fg); font-size: 1.15em; }
+
+    .timer-info { font-size: 0.9em; color: var(--fg-muted); margin-bottom: 14px; line-height: 1.7; }
+    .timer-info strong { color: var(--fg); font-weight: 500; }
+    .timer-info .status-expired { color: var(--danger); font-weight: 600; }
+    .timer-info .status-warning { color: var(--warn-fg); font-weight: 600; }
+    .timer-info .status-normal { color: var(--success-fg); font-weight: 600; }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.78em;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .badge.one-time { background: rgba(25, 118, 210, 0.15); color: var(--primary); }
+    .badge.recurring { background: rgba(46, 125, 50, 0.15); color: var(--success-fg); }
+
+    .timer-actions { display: flex; gap: 6px; }
+    .timer-actions button { flex: 1; padding: 7px 10px; font-size: 0.85em; }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .modal.active { display: flex; }
+
+    .modal-content {
+      position: relative;
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 28px;
+      max-width: 520px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .modal h2 { margin-bottom: 18px; color: var(--primary); }
+
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      font-size: 26px;
+      color: var(--fg-muted);
+      cursor: pointer;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+    }
+
+    .form-group { margin-bottom: 14px; }
+    label { display: block; margin-bottom: 5px; font-weight: 500; color: var(--fg); font-size: 0.9em; }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95em;
+      font-family: inherit;
+      background: var(--bg);
+      color: var(--fg);
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.18);
+    }
+
+    .form-group small { display: block; margin-top: 4px; color: var(--fg-muted); font-size: 0.8em; }
+    .form-half { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-half .form-group { margin-bottom: 0; }
+
+    .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+    .modal-actions button { flex: 1; }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--fg-muted);
+      background: var(--surface);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    .empty-state .big { font-size: 48px; margin-bottom: 10px; }
+
+    .status-toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-weight: 500;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+      z-index: 2000;
+      animation: slideIn 0.2s ease-out;
+    }
+    .status-toast.success { background: var(--success-bg); color: var(--success-fg); }
+    .status-toast.error { background: var(--error-bg); color: var(--error-fg); }
+
+    @keyframes slideIn {
+      from { transform: translateX(20px); opacity: 0; }
+      to   { transform: translateX(0); opacity: 1; }
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Task Timers</h1>
+      <p>Manage maintenance reminders and recurring task timers.</p>
+      <div class="button-group">
+        <button class="primary" id="addBtn">+ Add Timer</button>
+        <button class="secondary" id="refreshBtn">Refresh</button>
+      </div>
+    </header>
+
+    <div id="timersContainer" class="timers-grid">
+      <div class="empty-state"><span class="spinner"></span> Loading…</div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div id="timerModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <button class="close-btn" id="closeBtn" aria-label="Close">&times;</button>
+      <h2 id="modalTitle">Add Timer</h2>
+
+      <form id="timerForm">
+        <div class="form-group">
+          <label for="timerName">Name *</label>
+          <input type="text" id="timerName" placeholder="e.g., AC Filter" required />
+        </div>
+
+        <div class="form-group">
+          <label for="timerType">Type *</label>
+          <select id="timerType">
+            <option value="recurring">Recurring</option>
+            <option value="one_time">One-time</option>
+          </select>
+        </div>
+
+        <div id="intervalFields">
+          <div class="form-half">
+            <div class="form-group">
+              <label for="intervalDays">Interval days</label>
+              <input type="number" id="intervalDays" placeholder="30" min="0" />
+            </div>
+            <div class="form-group">
+              <label for="intervalHours">Interval hours</label>
+              <input type="number" id="intervalHours" placeholder="0" min="0" max="23" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="cronPattern">Cron pattern (optional)</label>
+            <input type="text" id="cronPattern" placeholder="0 0 1 * *" />
+            <small>Overrides the interval. Format: minute hour day month weekday</small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="warningDays">Warning days</label>
+          <input type="number" id="warningDays" value="7" min="0" />
+          <small>Sensor attribute <code>is_warning</code> flips true this many days before due.</small>
+        </div>
+
+        <div class="modal-actions">
+          <button type="submit" class="primary">Save</button>
+          <button type="button" class="secondary" id="cancelBtn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // --- Auth ----------------------------------------------------------------
+    // HA stores the current access token in localStorage['hassTokens'] on the
+    // same origin as the iframe, so we can lift it directly.
+    function getAuthToken() {
+      try {
+        const raw = localStorage.getItem("hassTokens");
+        if (!raw) return null;
+        return JSON.parse(raw).access_token || null;
+      } catch {
+        return null;
+      }
+    }
+
+    async function api(path, options = {}) {
+      const token = getAuthToken();
+      const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const res = await fetch(path, { ...options, headers });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`${res.status} ${res.statusText}${txt ? `: ${txt}` : ""}`);
+      }
+      return res.status === 204 ? null : res.json();
+    }
+
+    // --- State ---------------------------------------------------------------
+    let currentEditingId = null;
+    let timersCache = [];
+
+    // --- List / render -------------------------------------------------------
+    async function loadTimers() {
+      const container = document.getElementById("timersContainer");
+      container.innerHTML = '<div class="empty-state"><span class="spinner"></span> Loading…</div>';
+      try {
+        const data = await api("/api/task_timers/list");
+        timersCache = data.timers || [];
+        renderTimers(timersCache);
+      } catch (err) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="big">⚠</div>
+            <div>Failed to load timers</div>
+            <small>${escapeHtml(err.message)}</small>
+          </div>`;
+      }
+    }
+
+    function renderTimers(timers) {
+      const container = document.getElementById("timersContainer");
+      if (!timers.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="big">📭</div>
+            <div>No timers yet</div>
+            <small>Click "Add Timer" to create one.</small>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = timers.map((t) => {
+        const statusClass = t.is_expired ? "expired" : t.is_warning ? "warning" : "normal";
+        const remaining = formatRemaining(t.remaining_seconds);
+        const schedule = t.cron_pattern
+          ? `cron: <code>${escapeHtml(t.cron_pattern)}</code>`
+          : t.type === "recurring"
+            ? `${t.interval_days || 0}d ${t.interval_hours || 0}h`
+            : "one-time";
+        return `
+          <div class="timer-card ${statusClass}">
+            <span class="badge ${t.type === "recurring" ? "recurring" : "one-time"}">${t.type === "recurring" ? "Recurring" : "One-time"}</span>
+            <h3>${escapeHtml(t.name)}</h3>
+            <div class="timer-info">
+              <div><strong>Status:</strong> <span class="status-${statusClass}">${remaining}</span></div>
+              <div><strong>Schedule:</strong> ${schedule}</div>
+              <div><strong>Next due:</strong> ${new Date(t.next_due).toLocaleString()}</div>
+              ${t.last_reset ? `<div><strong>Last reset:</strong> ${new Date(t.last_reset).toLocaleString()}</div>` : ""}
+            </div>
+            <div class="timer-actions">
+              <button class="secondary" data-action="edit" data-id="${t.id}">Edit</button>
+              <button class="secondary" data-action="reset" data-id="${t.id}">Reset</button>
+              <button class="danger" data-action="delete" data-id="${t.id}">Delete</button>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    function formatRemaining(seconds) {
+      if (seconds < 0) {
+        const abs = Math.abs(seconds);
+        const d = Math.floor(abs / 86400);
+        const h = Math.floor((abs % 86400) / 3600);
+        return `Expired ${d}d ${h}h ago`;
+      }
+      const d = Math.floor(seconds / 86400);
+      const h = Math.floor((seconds % 86400) / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      if (d > 0) return `Due in ${d}d ${h}h`;
+      if (h > 0) return `Due in ${h}h ${m}m`;
+      return `Due in ${m}m`;
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+
+    // --- Modal ---------------------------------------------------------------
+    const modal = document.getElementById("timerModal");
+
+    function openAddModal() {
+      currentEditingId = null;
+      document.getElementById("modalTitle").textContent = "Add Timer";
+      document.getElementById("timerForm").reset();
+      document.getElementById("timerType").value = "recurring";
+      document.getElementById("warningDays").value = 7;
+      updateTypeFields();
+      modal.classList.add("active");
+      document.getElementById("timerName").focus();
+    }
+
+    function openEditModal(id) {
+      const timer = timersCache.find((t) => t.id === id);
+      if (!timer) return;
+      currentEditingId = id;
+      document.getElementById("modalTitle").textContent = "Edit Timer";
+      document.getElementById("timerName").value = timer.name || "";
+      document.getElementById("timerType").value = timer.type || "recurring";
+      document.getElementById("intervalDays").value = timer.interval_days || "";
+      document.getElementById("intervalHours").value = timer.interval_hours || "";
+      document.getElementById("cronPattern").value = timer.cron_pattern || "";
+      document.getElementById("warningDays").value = timer.warning_days ?? 7;
+      updateTypeFields();
+      modal.classList.add("active");
+    }
+
+    function closeModal() {
+      modal.classList.remove("active");
+      currentEditingId = null;
+    }
+
+    function updateTypeFields() {
+      const type = document.getElementById("timerType").value;
+      document.getElementById("intervalFields").style.display = type === "recurring" ? "block" : "none";
+    }
+
+    async function submitForm(e) {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById("timerName").value.trim(),
+        type: document.getElementById("timerType").value,
+        interval_days: parseInt(document.getElementById("intervalDays").value, 10) || 0,
+        interval_hours: parseInt(document.getElementById("intervalHours").value, 10) || 0,
+        cron_pattern: document.getElementById("cronPattern").value.trim() || null,
+        warning_days: parseInt(document.getElementById("warningDays").value, 10) || 7,
+      };
+
+      try {
+        if (currentEditingId) {
+          await api(`/api/task_timers/update/${currentEditingId}`, {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          toast("Timer updated", "success");
+        } else {
+          await api("/api/task_timers/create", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          toast("Timer created", "success");
+        }
+        closeModal();
+        await loadTimers();
+      } catch (err) {
+        toast(`Error: ${err.message}`, "error");
+      }
+    }
+
+    async function resetTimer(id) {
+      if (!confirm("Reset this timer?")) return;
+      try {
+        await api(`/api/task_timers/reset/${id}`, { method: "POST" });
+        toast("Timer reset", "success");
+        await loadTimers();
+      } catch (err) {
+        toast(`Error: ${err.message}`, "error");
+      }
+    }
+
+    async function deleteTimer(id) {
+      if (!confirm("Delete this timer permanently?")) return;
+      try {
+        await api(`/api/task_timers/delete/${id}`, { method: "POST" });
+        toast("Timer deleted", "success");
+        await loadTimers();
+      } catch (err) {
+        toast(`Error: ${err.message}`, "error");
+      }
+    }
+
+    function toast(message, type = "success") {
+      const el = document.createElement("div");
+      el.className = `status-toast ${type}`;
+      el.textContent = message;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }
+
+    // --- Wiring --------------------------------------------------------------
+    document.getElementById("addBtn").addEventListener("click", openAddModal);
+    document.getElementById("refreshBtn").addEventListener("click", loadTimers);
+    document.getElementById("closeBtn").addEventListener("click", closeModal);
+    document.getElementById("cancelBtn").addEventListener("click", closeModal);
+    document.getElementById("timerType").addEventListener("change", updateTypeFields);
+    document.getElementById("timerForm").addEventListener("submit", submitForm);
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    document.getElementById("timersContainer").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-action]");
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      if (action === "edit") openEditModal(id);
+      else if (action === "reset") resetTimer(id);
+      else if (action === "delete") deleteTimer(id);
+    });
+
+    // Initial load
+    loadTimers();
+    // Refresh every 30s so countdowns stay roughly current
+    setInterval(loadTimers, 30000);
+  </script>
+</body>
+</html>

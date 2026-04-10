@@ -21,10 +21,17 @@ A HACS integration for Home Assistant that tracks recurring maintenance tasks (f
 2. Install **Task Timers**.
 3. Restart Home Assistant.
 4. Go to **Settings → Devices & Services → Add Integration → Task Timers** and finish the config flow.
+5. A new **Task Timers** entry will appear in the left sidebar — that's the admin panel.
 
 ## Creating a timer
 
-Use Developer Tools → Services, or call from a script/automation:
+### Option 1 — Admin panel (recommended)
+
+Click **Task Timers** in the sidebar. Hit **+ Add Timer**, fill in the form, save. The list auto-refreshes every 30 seconds and shows next-due, last-reset, and status (normal / warning / expired) for every timer. You can edit, reset, or delete from the same screen.
+
+### Option 2 — Service call
+
+From Developer Tools → Services (or a script/automation):
 
 ```yaml
 service: task_timers.create_timer
