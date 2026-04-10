@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-04-10
+
+### Added
+- `icons.json` mapping each service (`create_timer`, `reset_timer`, `delete_timer`) to a thematic MDI icon shown in HA's service picker
+- `images/icon.svg` — repo logo displayed at the top of the README and rendered by HACS
+
 ## [1.0.3] - 2026-04-10
 
 ### Fixed

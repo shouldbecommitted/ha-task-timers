@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="images/icon.svg" alt="Task Timers" width="128" height="128"/>
+</p>
+
 # Task Timers for Home Assistant
 
 A HACS integration for Home Assistant that provides task-based timers with Lovelace cards for tracking recurring maintenance tasks, filter changes, and time-sensitive activities.

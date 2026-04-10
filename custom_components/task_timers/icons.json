@@ -1,0 +1,7 @@
+{
+  "services": {
+    "create_timer": "mdi:timer-plus-outline",
+    "reset_timer": "mdi:timer-refresh-outline",
+    "delete_timer": "mdi:timer-off-outline"
+  }
+}
