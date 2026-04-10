@@ -3,16 +3,10 @@
   "name": "Task Timers",
   "codeowners": ["@shouldbecommitted"],
   "config_flow": true,
-  "requirements": ["croniter>=1.3.0"],
+  "documentation": "https://github.com/shouldbecommitted/ha-task-timers",
   "homeassistant": "2024.1.0",
   "iot_class": "local_polling",
-  "version": "1.2.1",
   "issue_tracker": "https://github.com/shouldbecommitted/ha-task-timers/issues",
-  "documentation": "https://github.com/shouldbecommitted/ha-task-timers",
-  "manifests": {
-    "en": {
-      "name": "Task Timers",
-      "description": "Task-based timers with maintenance tracking and Lovelace cards"
-    }
-  }
+  "requirements": ["croniter>=1.3.0"],
+  "version": "1.2.2"
 }

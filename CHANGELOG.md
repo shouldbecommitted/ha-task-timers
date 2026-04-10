@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-04-10
+
+### Added
+- **Brand assets** — `custom_components/task_timers/brand/icon.png` (256×256) and `icon@2x.png` (512×512), rasterized from `images/icon.svg`. HACS's `brands` check now passes against local assets without requiring a PR to `home-assistant/brands`.
+- `hacs.json` declares `hacs: "1.6.0"` as the minimum HACS version.
+
+### Changed
+- `manifest.json` cleaned up: removed the non-standard `manifests` key (HA doesn't recognise it) and the stale "Lovelace cards" description (we dropped those in v1.1.0). Reordered keys alphabetically for readability.
+- Release workflow no longer passes `ignore: brands` to `hacs/action` — the check now passes legitimately via the local brand assets.
+
+### Meta
+- Ready for submission to `hacs/default`: six required manifest keys present, semver releases published, brand assets included, HACS validation workflow green, repository topics set.
+
 ## [1.2.1] - 2026-04-10
 
 ### Fixed
