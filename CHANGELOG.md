@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-04-10
+
+### Fixed
+- **HACS validation** passes again. The v1.2.0 release workflow failed three HACS checks; this patch fixes all of them:
+  - `hacs.json` no longer carries `documentation`, `issues`, or `iot_class` — those aren't valid HACS manifest keys (they belong in `manifest.json`).
+  - `iot_class: local_polling` moved to `manifest.json` where HA actually reads it.
+  - Repository topics set on GitHub (`home-assistant`, `hacs`, `hacs-integration`, `home-automation`, `homeassistant`) — HACS requires at least one valid topic.
+  - HACS action now runs with `ignore: brands` until the integration is formally listed in the `home-assistant/brands` repository. Installation works either way; this just silences the validation badge.
+
 ## [1.2.0] - 2026-04-10
 
 ### Added

@@ -1,8 +1,5 @@
 {
   "name": "Task Timers",
   "homeassistant": "2024.1.0",
-  "documentation": "https://github.com/shouldbecommitted/ha-task-timers",
-  "issues": "https://github.com/shouldbecommitted/ha-task-timers/issues",
-  "render_readme": true,
-  "iot_class": "local_polling"
+  "render_readme": true
 }
