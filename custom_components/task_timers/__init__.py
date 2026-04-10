@@ -82,7 +82,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     }
 
     # Register services
-    _register_services(hass, timer_manager, storage)
+    _register_services(hass, coordinator, timer_manager, storage)
 
     # REST views, static panel assets, and sidebar panel — once per HA instance
     await _async_register_admin_panel(hass)
@@ -131,7 +131,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 def _register_services(
-    hass: HomeAssistant, timer_manager: TimerManager, storage: TaskTimersStorage
+    hass: HomeAssistant,
+    coordinator: TaskTimersCoordinator,
+    timer_manager: TimerManager,
+    storage: TaskTimersStorage,
 ) -> None:
     """Register Task Timers services."""
 
@@ -151,7 +154,7 @@ def _register_services(
 
         if timer_manager.reset_timer(timer_id):
             await storage.async_save()
-            hass.data[DOMAIN]["coordinator"].dismiss_notification(timer_id)
+            coordinator.dismiss_notification(timer_id)
             LOGGER.info(f"Service: Reset timer {timer_id}")
         else:
             LOGGER.warning(f"Service: Timer not found {timer_id}")

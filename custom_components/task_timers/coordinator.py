@@ -1,18 +1,19 @@
 """Coordinator for Task Timers."""
 
+import asyncio
 import logging
 from datetime import timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, EVENT_TIMER_EXPIRED
+from .const import DOMAIN, EVENT_TIMER_EXPIRED, NOTIFY_PERSISTENT
 from .storage import TaskTimersStorage
 from .timer_manager import Timer, TimerManager
 
 _LOGGER = logging.getLogger(__name__)
 
-# persistent_notification IDs are prefixed so they're easy to identify/dismiss.
 _NOTIF_PREFIX = "task_timers_"
 
 
@@ -45,31 +46,50 @@ class TaskTimersCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict:
         """Fetch data from timer manager."""
         timers = self.timer_manager.list_timers()
-        expired_ids = {t.id for t in timers if t.is_expired}
+        now = dt_util.now()
 
-        # Fire notifications only for timers that NEWLY crossed into expired state.
-        for timer_id in expired_ids - self._notified_ids:
-            timer = self.timer_manager.get_timer(timer_id)
-            if timer:
-                await self._async_notify_expired(timer)
+        # Single pass: compute status for each timer and collect expired/warning sets.
+        expired_ids: set[str] = set()
+        warning_ids: list[str] = []
+        newly_expired_timers: list[Timer] = []
+        timer_data: list[dict] = []
 
-        self._notified_ids = expired_ids
+        for t in timers:
+            remaining_sec = (t.next_due - now).total_seconds()
+            is_expired = remaining_sec <= 0
+            is_warning = 0 < remaining_sec < t.warning_days * 86400
 
-        return {
-            "timers": [
+            if is_expired:
+                expired_ids.add(t.id)
+                if t.id not in self._notified_ids:
+                    newly_expired_timers.append(t)
+            elif is_warning:
+                warning_ids.append(t.id)
+
+            timer_data.append(
                 {
                     "id": t.id,
                     "name": t.name,
                     "next_due": t.next_due.isoformat(),
-                    "remaining_seconds": int(t.remaining.total_seconds()),
-                    "is_expired": t.is_expired,
-                    "is_warning": t.is_warning,
+                    "remaining_seconds": int(remaining_sec),
+                    "is_expired": is_expired,
+                    "is_warning": is_warning,
                     "last_reset": t.last_reset.isoformat() if t.last_reset else None,
                 }
-                for t in timers
-            ],
+            )
+
+        # Fire all pending expiry notifications concurrently.
+        if newly_expired_timers:
+            await asyncio.gather(
+                *(self._async_notify_expired(t) for t in newly_expired_timers)
+            )
+
+        self._notified_ids = expired_ids
+
+        return {
+            "timers": timer_data,
             "expired_timers": list(expired_ids),
-            "warning_timers": [t.id for t in timers if t.is_warning],
+            "warning_timers": warning_ids,
         }
 
     async def _async_notify_expired(self, timer: Timer) -> None:
@@ -78,9 +98,8 @@ class TaskTimersCoordinator(DataUpdateCoordinator):
             "Timer expired, firing notification: %s (%s)", timer.name, timer.id
         )
 
-        # Persistent notification — visible in HA's bell menu until dismissed.
         await self.hass.services.async_call(
-            "persistent_notification",
+            NOTIFY_PERSISTENT,
             "create",
             {
                 "notification_id": _notif_id(timer.id),
@@ -93,7 +112,6 @@ class TaskTimersCoordinator(DataUpdateCoordinator):
             blocking=False,
         )
 
-        # Custom event — lets users trigger automations (e.g. mobile push).
         self.hass.bus.async_fire(
             EVENT_TIMER_EXPIRED,
             {
@@ -108,7 +126,7 @@ class TaskTimersCoordinator(DataUpdateCoordinator):
         self._notified_ids.discard(timer_id)
         self.hass.async_create_task(
             self.hass.services.async_call(
-                "persistent_notification",
+                NOTIFY_PERSISTENT,
                 "dismiss",
                 {"notification_id": _notif_id(timer_id)},
                 blocking=False,

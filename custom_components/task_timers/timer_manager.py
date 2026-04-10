@@ -192,14 +192,6 @@ class TimerManager:
             key=lambda t: t.next_due,
         )
 
-    def list_expired_timers(self) -> list["Timer"]:
-        """Get all expired timers."""
-        return [t for t in self.list_timers() if t.is_expired]
-
-    def list_warning_timers(self) -> list["Timer"]:
-        """Get timers within their individual warning periods."""
-        return [t for t in self.list_timers() if t.is_warning]
-
     def reset_timer(self, timer_id: str) -> bool:
         """Reset timer and return success."""
         if timer := self.get_timer(timer_id):

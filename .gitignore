@@ -1,0 +1,38 @@
+# Ignore patterns for Task Timers
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+.mypy_cache/
+venv/
+env/
+.claude/lint-venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.tox/
+htmlcov/
+
+# Git
+.git/
+.gitignore
+
+# Node (if used for frontend build)
+node_modules/
+npm-debug.log
+yarn-error.log
