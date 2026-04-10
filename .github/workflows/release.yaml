@@ -23,7 +23,7 @@ jobs:
 
       - name: Validate manifest
         run: |
-          python -c "import json; json.load(open('custom_component/task_timers/manifest.json'))"
+          python -c "import json; json.load(open('custom_components/task_timers/manifest.json'))"
 
   hacs:
     needs: release

@@ -9,7 +9,7 @@ ha-task-timers/
 ├── LICENSE                             # MIT License
 ├── .gitignore                          # Git ignore patterns
 │
-├── custom_component/
+├── custom_components/
 │   └── task_timers/
 │       ├── __init__.py                # Integration entry point
 │       ├── manifest.json               # HACS metadata

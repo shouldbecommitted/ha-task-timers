@@ -27,11 +27,11 @@ Before submitting a PR:
 
 ```bash
 # Format code
-black custom_component/task_timers
+black custom_components/task_timers
 
 # Run linters
-flake8 custom_component/task_timers
-pylint custom_component/task_timers
+flake8 custom_components/task_timers
+pylint custom_components/task_timers
 ```
 
 ## Pull Request Process

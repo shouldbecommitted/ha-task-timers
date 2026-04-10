@@ -28,11 +28,11 @@ Run linting locally before pushing:
 pip install black flake8 pylint
 
 # Format code
-black custom_component/task_timers
+black custom_components/task_timers
 
 # Check formatting
-black --check custom_component/task_timers
+black --check custom_components/task_timers
 
 # Run linters
-flake8 custom_component/task_timers
-pylint custom_component/task_timers
+flake8 custom_components/task_timers
+pylint custom_components/task_timers

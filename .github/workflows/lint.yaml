@@ -23,10 +23,10 @@ jobs:
           pip install pylint black flake8
 
       - name: Run Black formatter check
-        run: black --check custom_component/task_timers
+        run: black --check custom_components/task_timers
 
       - name: Run Flake8
-        run: flake8 custom_component/task_timers --max-line-length=100 --ignore=E203,E501,W503
+        run: flake8 custom_components/task_timers --max-line-length=100 --ignore=E203,E501,W503
 
       - name: Run Pylint
-        run: pylint custom_component/task_timers || true
+        run: pylint custom_components/task_timers || true

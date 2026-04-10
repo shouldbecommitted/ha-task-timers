@@ -3,10 +3,10 @@ name: HACS Validation
 on:
   push:
     paths:
-      - "custom_component/task_timers/**"
+      - "custom_components/task_timers/**"
   pull_request:
     paths:
-      - "custom_component/task_timers/**"
+      - "custom_components/task_timers/**"
 
 jobs:
   validate:
@@ -18,4 +18,4 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
-          path: custom_component/task_timers
+          path: custom_components/task_timers
