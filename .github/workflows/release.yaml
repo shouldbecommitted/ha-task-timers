@@ -8,6 +8,8 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -24,15 +26,9 @@ jobs:
           print(f'Version OK: {manifest[\"version\"]}')
           "
 
-      - name: Create zip
-        run: |
-          cd custom_components
-          zip -r ../task_timers.zip task_timers/
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: task_timers.zip
           generate_release_notes: true
 
   hacs:

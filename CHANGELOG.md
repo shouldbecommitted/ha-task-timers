@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-04-10
+
+### Fixed
+- Release workflow: granted `contents: write` permission so the workflow can actually create GitHub Releases
+- Removed invalid `filename` field from `hacs.json` (only valid for plugins/themes, not integrations)
+- Removed unused zip artifact step from release workflow (HACS downloads `custom_components/<domain>/` directly from the tagged commit for integrations)
+
 ## [1.0.2] - 2026-04-10
 
 ### Added
