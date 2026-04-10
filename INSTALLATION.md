@@ -12,7 +12,7 @@
 
 1. Open **Settings → Devices & Services → HACS**
 2. Click the **⋯** menu and select **Custom repositories**
-3. Enter repository URL: `https://github.com/yourusername/task-timers`
+3. Enter repository URL: `https://github.com/shouldbecommitted/task-timers`
 4. Select category: **Integration**
 5. Click **Create**
 
@@ -79,6 +79,6 @@ views:
 
 ## Support
 
-- Issues: [GitHub Issues](https://github.com/yourusername/task-timers/issues)
-- Discussions: [GitHub Discussions](https://github.com/yourusername/task-timers/discussions)
+- Issues: [GitHub Issues](https://github.com/shouldbecommitted/task-timers/issues)
+- Discussions: [GitHub Discussions](https://github.com/shouldbecommitted/task-timers/discussions)
 - Home Assistant Community: (link to your thread)
