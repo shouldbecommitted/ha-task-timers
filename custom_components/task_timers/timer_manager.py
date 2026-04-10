@@ -142,14 +142,29 @@ class TimerManager:
         await self.storage.async_save()
 
     def create_timer(self, name: str, timer_type: str, **kwargs) -> "Timer":
-        """Create and return a new timer."""
-        interval_days = kwargs.get("interval_days", 30)
-        config = {
+        """Create and return a new timer.
+
+        For one-time timers, ``due_at`` (ISO datetime string) is required.
+        For recurring timers, the next due date is computed from
+        ``interval_days``/``interval_hours`` or ``cron_pattern``.
+        """
+        config: dict[str, Any] = {
             "name": name,
             "type": timer_type,
-            "next_due": (dt_util.now() + timedelta(days=interval_days)).isoformat(),
             **kwargs,
         }
+
+        if timer_type == TIMER_ONE_TIME:
+            due_at = _parse_dt(kwargs.get("due_at"))
+            if due_at is None:
+                raise ValueError(
+                    "One-time timer requires 'due_at' (ISO 8601 datetime)"
+                )
+            config["next_due"] = due_at.isoformat()
+            config.pop("due_at", None)
+        else:
+            # Use a temporary Timer to reuse the schedule calculation logic
+            config["next_due"] = Timer(config)._calculate_next_due().isoformat()
 
         timer_id = self.storage.add_timer(config)
         timer = Timer(self.storage.get_timer(timer_id))
@@ -198,10 +213,20 @@ class TimerManager:
     def update_timer(self, timer_id: str, updates: dict[str, Any]) -> bool:
         """Update a timer and return success."""
         if timer := self.get_timer(timer_id):
+            # due_at is an alias for "set next_due directly" (one-time timers)
+            due_at_raw = updates.pop("due_at", None)
             timer.data.update(updates)
-            # Recalculate if schedule changed
-            if "cron_pattern" in updates or "interval_days" in updates or "interval_hours" in updates:
+
+            if due_at_raw is not None:
+                due_at = _parse_dt(due_at_raw)
+                if due_at is not None:
+                    timer.data["next_due"] = due_at.isoformat()
+            elif any(
+                k in updates
+                for k in ("cron_pattern", "interval_days", "interval_hours")
+            ):
                 timer.data["next_due"] = timer._calculate_next_due().isoformat()
+
             self.storage.update_timer(timer_id, timer.data)
             _LOGGER.info(f"Updated timer: {timer.name}")
             return True

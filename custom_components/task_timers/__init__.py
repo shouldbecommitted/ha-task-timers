@@ -27,6 +27,7 @@ CREATE_TIMER_SCHEMA = vol.Schema({
     vol.Optional("interval_days", default=0): vol.Coerce(int),
     vol.Optional("interval_hours", default=0): vol.Coerce(int),
     vol.Optional("cron_pattern"): cv.string,
+    vol.Optional("due_at"): cv.string,
     vol.Optional("warning_days", default=7): vol.Coerce(int),
 })
 

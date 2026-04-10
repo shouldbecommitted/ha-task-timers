@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2026-04-10
+
+### Fixed
+- **One-time timers silently defaulted to 30 days from now.** `TimerManager.create_timer` had a hardcoded `interval_days = kwargs.get("interval_days", 30)` that fired unconditionally, so every one-time timer got `next_due = now + 30 days` regardless of user intent. The admin panel form also had no input for "when is this due" in one-time mode, which made the bug unnoticeable.
+
+### Added
+- **`due_at` field** — absolute ISO 8601 datetime for one-time timers. Supported everywhere:
+  - `create_timer` service (new optional `due_at` field, required when `type: one_time`)
+  - REST `POST /api/task_timers/create` and `/update/{id}` (via `due_at` in the JSON body)
+  - Admin panel — new **Due at** datetime-local picker that appears when "One-time" is selected, defaults to tomorrow 09:00 local, and populates from the timer's current due date when editing
+  - `services.yaml` — new field with a `datetime:` selector
+- Admin panel uses native HTML5 `datetime-local` input and converts to an ISO string (`new Date(value).toISOString()`) before submitting, so the backend receives a fully qualified timestamp with timezone and doesn't have to guess the user's locale.
+
+### Changed
+- `create_timer` now raises `ValueError` if `type: one_time` is passed without `due_at`. The REST view turns that into a `400 Bad Request`.
+- For recurring timers, `create_timer` now delegates to `Timer._calculate_next_due()` instead of doing its own arithmetic, so the schedule logic lives in one place.
+- `_serialize_timer` exposes a `due_at` field alongside `next_due` for one-time timers, so the admin panel edit form can populate its datetime picker directly.
+
 ## [1.2.2] - 2026-04-10
 
 ### Added

@@ -279,6 +279,14 @@
           </div>
         </div>
 
+        <div id="dueAtFields" style="display: none;">
+          <div class="form-group">
+            <label for="dueAt">Due at *</label>
+            <input type="datetime-local" id="dueAt" />
+            <small>When this one-time task is due. Your local time.</small>
+          </div>
+        </div>
+
         <div class="form-group">
           <label for="warningDays">Warning days</label>
           <input type="number" id="warningDays" value="7" min="0" />
@@ -404,12 +412,27 @@
     // --- Modal ---------------------------------------------------------------
     const modal = document.getElementById("timerModal");
 
+    // Convert an ISO datetime string to a datetime-local input value
+    // ("YYYY-MM-DDTHH:MM") in the user's local timezone.
+    function toDatetimeLocalValue(isoString) {
+      if (!isoString) return "";
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return "";
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
     function openAddModal() {
       currentEditingId = null;
       document.getElementById("modalTitle").textContent = "Add Timer";
       document.getElementById("timerForm").reset();
       document.getElementById("timerType").value = "recurring";
       document.getElementById("warningDays").value = 7;
+      // Seed a sensible default due date (tomorrow 9am local) for one-time mode
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(9, 0, 0, 0);
+      document.getElementById("dueAt").value = toDatetimeLocalValue(tomorrow.toISOString());
       updateTypeFields();
       modal.classList.add("active");
       document.getElementById("timerName").focus();
@@ -426,6 +449,7 @@
       document.getElementById("intervalHours").value = timer.interval_hours || "";
       document.getElementById("cronPattern").value = timer.cron_pattern || "";
       document.getElementById("warningDays").value = timer.warning_days ?? 7;
+      document.getElementById("dueAt").value = toDatetimeLocalValue(timer.due_at || timer.next_due);
       updateTypeFields();
       modal.classList.add("active");
     }
@@ -437,19 +461,36 @@
 
     function updateTypeFields() {
       const type = document.getElementById("timerType").value;
-      document.getElementById("intervalFields").style.display = type === "recurring" ? "block" : "none";
+      const isRecurring = type === "recurring";
+      document.getElementById("intervalFields").style.display = isRecurring ? "block" : "none";
+      document.getElementById("dueAtFields").style.display = isRecurring ? "none" : "block";
+      // Toggle required attribute so browser form validation matches the visible fields
+      document.getElementById("dueAt").required = !isRecurring;
     }
 
     async function submitForm(e) {
       e.preventDefault();
+      const type = document.getElementById("timerType").value;
       const payload = {
         name: document.getElementById("timerName").value.trim(),
-        type: document.getElementById("timerType").value,
-        interval_days: parseInt(document.getElementById("intervalDays").value, 10) || 0,
-        interval_hours: parseInt(document.getElementById("intervalHours").value, 10) || 0,
-        cron_pattern: document.getElementById("cronPattern").value.trim() || null,
+        type,
         warning_days: parseInt(document.getElementById("warningDays").value, 10) || 7,
       };
+
+      if (type === "recurring") {
+        payload.interval_days = parseInt(document.getElementById("intervalDays").value, 10) || 0;
+        payload.interval_hours = parseInt(document.getElementById("intervalHours").value, 10) || 0;
+        payload.cron_pattern = document.getElementById("cronPattern").value.trim() || null;
+      } else {
+        // Convert the datetime-local value (browser-local time) to a fully
+        // qualified ISO 8601 string so the backend doesn't have to guess tz.
+        const dueAtLocal = document.getElementById("dueAt").value;
+        if (!dueAtLocal) {
+          toast("Due date/time is required for one-time timers", "error");
+          return;
+        }
+        payload.due_at = new Date(dueAtLocal).toISOString();
+      }
 
       try {
         if (currentEditingId) {

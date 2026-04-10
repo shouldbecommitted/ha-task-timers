@@ -18,11 +18,15 @@ _LOGGER = logging.getLogger(__name__)
 
 def _serialize_timer(timer: Timer) -> dict[str, Any]:
     """Serialize a Timer to JSON-safe dict for the admin panel."""
+    next_due_iso = timer.next_due.isoformat()
     return {
         "id": timer.id,
         "name": timer.name,
         "type": timer.timer_type,
-        "next_due": timer.next_due.isoformat(),
+        "next_due": next_due_iso,
+        # For one-time timers, next_due IS the due date — expose it as due_at
+        # too so the edit form can populate its datetime picker directly.
+        "due_at": next_due_iso if timer.timer_type == "one_time" else None,
         "remaining_seconds": int(timer.remaining.total_seconds()),
         "is_expired": timer.is_expired,
         "is_warning": timer.is_warning,
@@ -88,7 +92,10 @@ class TaskTimersCreateView(_TaskTimersBaseView):
 
         kwargs = _clean_schedule_kwargs(payload, timer_type)
 
-        timer = self._timer_manager.create_timer(name, timer_type, **kwargs)
+        try:
+            timer = self._timer_manager.create_timer(name, timer_type, **kwargs)
+        except ValueError as err:
+            return self.json_message(str(err), HTTPStatus.BAD_REQUEST)
         await self._storage.async_save()
         return self.json(_serialize_timer(timer))
 
@@ -169,7 +176,10 @@ def _clean_schedule_kwargs(
         kwargs["tags"] = [str(t).strip() for t in tags if str(t).strip()]
 
     if timer_type != "recurring":
-        # one-time timers don't carry schedule fields
+        # one-time timers carry an absolute due date instead of a schedule
+        due_at = (payload.get("due_at") or "").strip()
+        if due_at:
+            kwargs["due_at"] = due_at
         return kwargs
 
     interval_days = payload.get("interval_days")

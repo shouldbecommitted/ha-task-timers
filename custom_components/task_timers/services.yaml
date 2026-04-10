@@ -47,6 +47,13 @@ create_timer:
       example: "0 0 1 * *"
       selector:
         text:
+    due_at:
+      name: Due at
+      description: Absolute due date for one-time timers (ISO 8601). Required when type is one_time; ignored for recurring.
+      required: false
+      example: "2026-05-15T14:00:00"
+      selector:
+        datetime:
     warning_days:
       name: Warning days
       description: Flag the timer as "warning" this many days before the due date.
