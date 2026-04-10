@@ -1,7 +1,7 @@
 # Directory Structure
 
 ```
-task-timers/
+ha-task-timers/
 ├── README.md                           # Main documentation
 ├── INSTALLATION.md                     # Installation guide
 ├── API.md                              # REST API reference

@@ -103,8 +103,8 @@ Each timer creates:
 
 ## Support
 
-- Issues: [GitHub Issues](https://github.com/shouldbecommitted/task-timers/issues)
-- Discussions: [GitHub Discussions](https://github.com/shouldbecommitted/task-timers/discussions)
+- Issues: [GitHub Issues](https://github.com/shouldbecommitted/ha-task-timers/issues)
+- Discussions: [GitHub Discussions](https://github.com/shouldbecommitted/ha-task-timers/discussions)
 
 ## License
 
