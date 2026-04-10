@@ -361,9 +361,14 @@
         return;
       }
 
+      const now = Date.now();
       container.innerHTML = timers.map((t) => {
-        const statusClass = t.is_expired ? "expired" : t.is_warning ? "warning" : "normal";
-        const remaining = formatRemaining(t.remaining_seconds);
+        // Compute remaining client-side so it's always fresh (not a stale server snapshot).
+        const remainingSec = (new Date(t.next_due).getTime() - now) / 1000;
+        const isExpired = remainingSec <= 0;
+        const isWarning = !isExpired && remainingSec < (t.warning_days || 7) * 86400;
+        const statusClass = isExpired ? "expired" : isWarning ? "warning" : "normal";
+        const remaining = formatRemaining(remainingSec);
         const schedule = t.cron_pattern
           ? `cron: <code>${escapeHtml(t.cron_pattern)}</code>`
           : t.type === "recurring"
@@ -393,7 +398,10 @@
         const abs = Math.abs(seconds);
         const d = Math.floor(abs / 86400);
         const h = Math.floor((abs % 86400) / 3600);
-        return `Expired ${d}d ${h}h ago`;
+        const m = Math.floor((abs % 3600) / 60);
+        if (d > 0) return `Expired ${d}d ${h}h ago`;
+        if (h > 0) return `Expired ${h}h ${m}m ago`;
+        return `Expired ${m}m ago`;
       }
       const d = Math.floor(seconds / 86400);
       const h = Math.floor((seconds % 86400) / 3600);

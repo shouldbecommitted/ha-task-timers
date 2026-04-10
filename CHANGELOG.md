@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2026-04-10
+
+### Fixed
+- **Expired timers always showed "Expired 0d 0h ago".** `formatRemaining` in the admin panel only computed days and hours for the expired case, so any timer that expired less than one hour ago showed `0d 0h`. Added minutes to the expired path so short expiries display correctly (e.g. "Expired 23m ago").
+- **Status badge used a stale server-side snapshot.** `remaining_seconds` was serialized at API request time and could be up to 30 s out of date by the time the card rendered. The panel now computes remaining time client-side from `next_due` on every render, so expired/warning/normal state is always current.
+
 ## [1.2.3] - 2026-04-10
 
 ### Fixed
