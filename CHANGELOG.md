@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-04-10
+
+### Added
+- **Expiry notifications.** When a timer transitions from active to expired the integration now:
+  - Creates a **persistent notification** (bell icon in HA sidebar) titled "Task due: {name}" with a direct link to the Task Timers panel. The notification is automatically dismissed when the timer is reset.
+  - Fires a **`task_timers_timer_expired` event** on the HA event bus with `timer_id`, `name`, and `next_due` fields. Use this to drive automations (e.g. mobile push via `notify.mobile_app_*`):
+    ```yaml
+    trigger:
+      - platform: event
+        event_type: task_timers_timer_expired
+    action:
+      - service: notify.mobile_app_my_phone
+        data:
+          title: "Task due: {{ trigger.event.data.name }}"
+          message: "Tap to open Task Timers."
+    ```
+- **`EVENT_TIMER_EXPIRED`** constant added to `const.py` (`task_timers_timer_expired`).
+
+### Changed
+- Coordinator tracks a `_notified_ids` set so each timer fires at most one notification per expiry cycle. Notifications re-fire if the timer expires again after being reset.
+- Reset (via service or admin panel) now calls `dismiss_notification` on the coordinator, which clears the `_notified_ids` entry and dismisses the persistent notification in one step.
+
 ## [1.2.4] - 2026-04-10
 
 ### Fixed

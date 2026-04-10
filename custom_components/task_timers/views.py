@@ -10,6 +10,7 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
+from .coordinator import TaskTimersCoordinator
 from .storage import TaskTimersStorage
 from .timer_manager import Timer, TimerManager
 
@@ -47,6 +48,10 @@ class _TaskTimersBaseView(HomeAssistantView):
     def __init__(self, hass: HomeAssistant) -> None:
         """Hold a reference to hass so subclasses can look up state on demand."""
         self.hass = hass
+
+    @property
+    def _coordinator(self) -> TaskTimersCoordinator:
+        return self.hass.data[DOMAIN]["coordinator"]
 
     @property
     def _timer_manager(self) -> TimerManager:
@@ -142,6 +147,7 @@ class TaskTimersResetView(_TaskTimersBaseView):
         if not self._timer_manager.reset_timer(timer_id):
             return self.json_message("Timer not found", HTTPStatus.NOT_FOUND)
         await self._storage.async_save()
+        self._coordinator.dismiss_notification(timer_id)
         return self.json({"success": True})
 
 

@@ -138,6 +138,7 @@ def _register_services(
 
         if timer_manager.reset_timer(timer_id):
             await storage.async_save()
+            hass.data[DOMAIN]["coordinator"].dismiss_notification(timer_id)
             LOGGER.info(f"Service: Reset timer {timer_id}")
         else:
             LOGGER.warning(f"Service: Timer not found {timer_id}")

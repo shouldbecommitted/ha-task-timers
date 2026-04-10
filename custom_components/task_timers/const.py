@@ -27,3 +27,6 @@ TIMER_RECURRING = "recurring"
 # Dispatcher signals
 SIGNAL_TIMER_ADDED = f"{DOMAIN}_timer_added"
 SIGNAL_TIMER_REMOVED = f"{DOMAIN}_timer_removed"
+
+# HA event fired when a timer transitions from active to expired
+EVENT_TIMER_EXPIRED = f"{DOMAIN}_timer_expired"
