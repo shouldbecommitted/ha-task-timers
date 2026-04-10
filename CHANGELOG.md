@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-04-10
+
+### Fixed
+- **`_notified_ids` memory leak on timer delete.** Deleting a timer via the admin panel or `delete_timer` service left its ID in the coordinator's `_notified_ids` set indefinitely. Both the REST delete view and the service handler now call `dismiss_notification` on delete, which prunes the ID and dismisses any lingering persistent notification.
+
+### Changed
+- Coordinator `_async_update_data` refactored to a single pass over the timer list: expired/warning classification, serialization, and notification detection all happen in one loop. A single `dt_util.now()` snapshot is used for all timer comparisons in the cycle. Multiple timers expiring simultaneously are now notified concurrently via `asyncio.gather`.
+- Removed unused `list_expired_timers()` and `list_warning_timers()` methods from `TimerManager`.
+- Hook version parsing (`lint-python.sh`) replaced `grep | cut` with a Python `re.match` one-liner that handles all PEP 440 specifier formats correctly.
+
 ## [1.3.1] - 2026-04-10
 
 ### Fixed
