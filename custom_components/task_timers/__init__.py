@@ -1,24 +1,16 @@
 """Task Timers integration setup."""
-from pathlib import Path
-
 import voluptuous as vol
-from homeassistant.components import websocket_api
-from homeassistant.components.frontend import add_extra_js_url
-from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
-from homeassistant.loader import async_get_integration
 
 from .const import DOMAIN, LOGGER, SERVICE_CREATE_TIMER, SERVICE_DELETE_TIMER, SERVICE_RESET_TIMER
 from .coordinator import TaskTimersCoordinator
 from .storage import TaskTimersStorage
 from .timer_manager import TimerManager
 
-PLATFORMS: list = []
-
-URL_BASE = f"/{DOMAIN}_files"
-CARDS = ("task-timer-card.js", "task-expiry-card.js")
+PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 CREATE_TIMER_SCHEMA = vol.Schema({
     vol.Required("name"): cv.string,
@@ -69,61 +61,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register services
     _register_services(hass, timer_manager, storage)
 
-    # Register WebSocket commands
-    websocket_api.async_register_command(hass, ws_list_timers)
-
-    # Register frontend cards as static paths and load them in the frontend
-    await _register_frontend(hass)
+    # Forward to sensor platform — each timer becomes a TIMESTAMP sensor entity
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
-
-
-async def _register_frontend(hass: HomeAssistant) -> None:
-    """Serve bundled Lovelace cards and register them with the frontend."""
-    integration = await async_get_integration(hass, DOMAIN)
-    version = integration.version
-    www_dir = Path(__file__).parent / "www"
-
-    static_paths = [
-        StaticPathConfig(f"{URL_BASE}/{card}", str(www_dir / card), False)
-        for card in CARDS
-    ]
-    await hass.http.async_register_static_paths(static_paths)
-
-    for card in CARDS:
-        add_extra_js_url(hass, f"{URL_BASE}/{card}?ver={version}")
-        LOGGER.debug(f"Registered frontend card: {card} (v{version})")
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     LOGGER.debug(f"Unloading Task Timers entry: {entry.entry_id}")
-    hass.data[DOMAIN].clear()
-    return True
-
-
-@websocket_api.websocket_command({"type": "task_timers/list"})
-@websocket_api.async_response
-async def ws_list_timers(
-    hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
-    msg: dict,
-) -> None:
-    """Handle list timers websocket command."""
-    timer_manager: TimerManager = hass.data[DOMAIN]["timer_manager"]
-    timers = [
-        {
-            "id": t.id,
-            "name": t.name,
-            "next_due": t.next_due.isoformat(),
-            "remaining_seconds": int(t.remaining.total_seconds()),
-            "is_expired": t.is_expired,
-            "is_warning": t.is_warning,
-            "last_reset": t.last_reset.isoformat() if t.last_reset else None,
-        }
-        for t in timer_manager.list_timers()
-    ]
-    connection.send_result(msg["id"], {"timers": timers})
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
+        hass.data[DOMAIN].clear()
+    return unload_ok
 
 
 def _register_services(

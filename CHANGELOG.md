@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-04-10
+
+### Changed
+- **BREAKING:** Dropped the bundled Lit-based Lovelace cards (`task-timer-card`, `task-expiry-card`) entirely. The no-build Lit CDN import was fragile and broke whenever jsdelivr's resolution shifted, leaving users with empty card pickers. Each timer is now exposed as a `sensor.*` entity (`device_class: timestamp`) so dashboards can be built with whatever cards the user already uses (Mushroom, Tile, Entities, auto-entities, etc.). See the README for ready-to-paste recipes.
+- New sensor platform under `sensor.py` — one `TaskTimerSensor` per timer, with `is_expired` / `is_warning` / `remaining_seconds` / `last_reset` / `timer_id` / `type` / `warning_days` exposed as attributes for templating.
+- `__init__.py` no longer registers static paths, no longer injects frontend JS, and no longer registers a `task_timers/list` WebSocket command — none of those are needed once timers are first-class entities.
+
+### Added
+- Dispatcher signals (`SIGNAL_TIMER_ADDED`, `SIGNAL_TIMER_REMOVED`) so the sensor platform can add/remove entities live as timers are created or deleted via services.
+
+### Removed
+- `custom_components/task_timers/www/` directory (the two Lit card JS files).
+- `homeassistant.components.frontend.add_extra_js_url`, `StaticPathConfig`, and `websocket_api` imports from `__init__.py`.
+
+### Migration
+- If you had `type: custom:task-timer-card` or `type: custom:task-expiry-card` in your dashboards, replace them with one of the recipes in the README. Your stored timers and history are untouched.
+
 ## [1.0.5] - 2026-04-10
 
 ### Fixed

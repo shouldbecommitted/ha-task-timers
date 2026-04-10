@@ -23,3 +23,7 @@ NOTIFY_SERVICE_CALL = "service_call"
 # Timer types
 TIMER_ONE_TIME = "one_time"
 TIMER_RECURRING = "recurring"
+
+# Dispatcher signals
+SIGNAL_TIMER_ADDED = f"{DOMAIN}_timer_added"
+SIGNAL_TIMER_REMOVED = f"{DOMAIN}_timer_removed"

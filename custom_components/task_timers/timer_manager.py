@@ -4,9 +4,10 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from croniter import croniter
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.util import dt as dt_util
 
-from .const import TIMER_ONE_TIME, TIMER_RECURRING
+from .const import SIGNAL_TIMER_ADDED, SIGNAL_TIMER_REMOVED, TIMER_ONE_TIME, TIMER_RECURRING
 from .storage import TaskTimersStorage
 
 _LOGGER = logging.getLogger(__name__)
@@ -156,6 +157,7 @@ class TimerManager:
         self.storage.add_history_entry(timer_id, "created")
 
         _LOGGER.info(f"Created timer: {name} (ID: {timer_id})")
+        async_dispatcher_send(self.hass, SIGNAL_TIMER_ADDED, timer_id)
         return timer
 
     def get_timer(self, timer_id: str) -> "Timer | None":
@@ -189,6 +191,7 @@ class TimerManager:
         if self.storage.delete_timer(timer_id):
             self.timers.pop(timer_id, None)
             _LOGGER.info(f"Deleted timer: {timer_id}")
+            async_dispatcher_send(self.hass, SIGNAL_TIMER_REMOVED, timer_id)
             return True
         return False
 
