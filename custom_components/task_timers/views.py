@@ -162,6 +162,7 @@ class TaskTimersDeleteView(_TaskTimersBaseView):
         if not self._timer_manager.delete_timer(timer_id):
             return self.json_message("Timer not found", HTTPStatus.NOT_FOUND)
         await self._storage.async_save()
+        self._coordinator.dismiss_notification(timer_id)
         return self.json({"success": True})
 
 

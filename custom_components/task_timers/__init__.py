@@ -165,6 +165,7 @@ def _register_services(
 
         if timer_manager.delete_timer(timer_id):
             await storage.async_save()
+            coordinator.dismiss_notification(timer_id)
             LOGGER.info(f"Service: Deleted timer {timer_id}")
         else:
             LOGGER.warning(f"Service: Timer not found {timer_id}")

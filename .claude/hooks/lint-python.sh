@@ -26,9 +26,13 @@ except Exception:
 if [[ ! -x "$VENV/bin/black" ]]; then
     echo "[lint-python] Setting up lint venv (first run)..." >&2
     python3 -m venv "$VENV"
-    "$VENV/bin/pip" install --quiet \
-        black==$(grep '^black==' "$REPO_DIR/requirements-dev.txt" | cut -d= -f3) \
-        flake8==$(grep '^flake8==' "$REPO_DIR/requirements-dev.txt" | cut -d= -f3)
+    # Extract pinned black + flake8 lines from requirements-dev.txt.
+    PKGS=$(python3 -c "
+import re, pathlib
+lines = pathlib.Path('$REPO_DIR/requirements-dev.txt').read_text().splitlines()
+print(' '.join(l.strip() for l in lines if re.match(r'^(black|flake8)[=><!]', l.strip())))
+")
+    "$VENV/bin/pip" install --quiet $PKGS
 fi
 
 echo "[lint-python] $FILE" >&2
