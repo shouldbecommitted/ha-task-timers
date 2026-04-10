@@ -1,4 +1,5 @@
 """Task Timers integration setup."""
+
 from pathlib import Path
 
 import voluptuous as vol
@@ -9,7 +10,13 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 
-from .const import DOMAIN, LOGGER, SERVICE_CREATE_TIMER, SERVICE_DELETE_TIMER, SERVICE_RESET_TIMER
+from .const import (
+    DOMAIN,
+    LOGGER,
+    SERVICE_CREATE_TIMER,
+    SERVICE_DELETE_TIMER,
+    SERVICE_RESET_TIMER,
+)
 from .coordinator import TaskTimersCoordinator
 from .storage import TaskTimersStorage
 from .timer_manager import TimerManager
@@ -21,23 +28,29 @@ PANEL_URL_PATH = "task-timers"
 PANEL_STATIC_URL = f"/{DOMAIN}_panel"
 PANEL_FILE = "admin-panel.html"
 
-CREATE_TIMER_SCHEMA = vol.Schema({
-    vol.Required("name"): cv.string,
-    vol.Optional("type", default="recurring"): vol.In(["one_time", "recurring"]),
-    vol.Optional("interval_days", default=0): vol.Coerce(int),
-    vol.Optional("interval_hours", default=0): vol.Coerce(int),
-    vol.Optional("cron_pattern"): cv.string,
-    vol.Optional("due_at"): cv.string,
-    vol.Optional("warning_days", default=7): vol.Coerce(int),
-})
+CREATE_TIMER_SCHEMA = vol.Schema(
+    {
+        vol.Required("name"): cv.string,
+        vol.Optional("type", default="recurring"): vol.In(["one_time", "recurring"]),
+        vol.Optional("interval_days", default=0): vol.Coerce(int),
+        vol.Optional("interval_hours", default=0): vol.Coerce(int),
+        vol.Optional("cron_pattern"): cv.string,
+        vol.Optional("due_at"): cv.string,
+        vol.Optional("warning_days", default=7): vol.Coerce(int),
+    }
+)
 
-RESET_TIMER_SCHEMA = vol.Schema({
-    vol.Required("timer_id"): cv.string,
-})
+RESET_TIMER_SCHEMA = vol.Schema(
+    {
+        vol.Required("timer_id"): cv.string,
+    }
+)
 
-DELETE_TIMER_SCHEMA = vol.Schema({
-    vol.Required("timer_id"): cv.string,
-})
+DELETE_TIMER_SCHEMA = vol.Schema(
+    {
+        vol.Required("timer_id"): cv.string,
+    }
+)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -88,9 +101,9 @@ async def _async_register_admin_panel(hass: HomeAssistant) -> None:
     register_views(hass)
 
     www_dir = Path(__file__).parent / "www"
-    await hass.http.async_register_static_paths([
-        StaticPathConfig(PANEL_STATIC_URL, str(www_dir), False)
-    ])
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(PANEL_STATIC_URL, str(www_dir), False)]
+    )
 
     if PANEL_URL_PATH not in hass.data.get("frontend_panels", {}):
         frontend.async_register_built_in_panel(
@@ -153,8 +166,14 @@ def _register_services(
         else:
             LOGGER.warning(f"Service: Timer not found {timer_id}")
 
-    hass.services.async_register(DOMAIN, SERVICE_CREATE_TIMER, handle_create_timer, schema=CREATE_TIMER_SCHEMA)
-    hass.services.async_register(DOMAIN, SERVICE_RESET_TIMER, handle_reset_timer, schema=RESET_TIMER_SCHEMA)
-    hass.services.async_register(DOMAIN, SERVICE_DELETE_TIMER, handle_delete_timer, schema=DELETE_TIMER_SCHEMA)
+    hass.services.async_register(
+        DOMAIN, SERVICE_CREATE_TIMER, handle_create_timer, schema=CREATE_TIMER_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_RESET_TIMER, handle_reset_timer, schema=RESET_TIMER_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_DELETE_TIMER, handle_delete_timer, schema=DELETE_TIMER_SCHEMA
+    )
 
     LOGGER.debug("Task Timers services registered")

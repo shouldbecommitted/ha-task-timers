@@ -1,4 +1,5 @@
 """Task Timers integration for Home Assistant."""
+
 import logging
 from typing import Final
 

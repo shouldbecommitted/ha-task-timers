@@ -1,4 +1,5 @@
 """Timer manager for Task Timers."""
+
 import logging
 from datetime import datetime, timedelta
 from typing import Any
@@ -7,7 +8,12 @@ from croniter import croniter
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.util import dt as dt_util
 
-from .const import SIGNAL_TIMER_ADDED, SIGNAL_TIMER_REMOVED, TIMER_ONE_TIME, TIMER_RECURRING
+from .const import (
+    SIGNAL_TIMER_ADDED,
+    SIGNAL_TIMER_REMOVED,
+    TIMER_ONE_TIME,
+    TIMER_RECURRING,
+)
 from .storage import TaskTimersStorage
 
 _LOGGER = logging.getLogger(__name__)
@@ -113,7 +119,9 @@ class Timer:
             return now + timedelta(days=interval_days, hours=interval_hours)
 
         # No schedule found, default to 30 days
-        _LOGGER.warning(f"No schedule configured for timer '{self.name}', defaulting to 30 days")
+        _LOGGER.warning(
+            f"No schedule configured for timer '{self.name}', defaulting to 30 days"
+        )
         return now + timedelta(days=30)
 
 
@@ -157,9 +165,7 @@ class TimerManager:
         if timer_type == TIMER_ONE_TIME:
             due_at = _parse_dt(kwargs.get("due_at"))
             if due_at is None:
-                raise ValueError(
-                    "One-time timer requires 'due_at' (ISO 8601 datetime)"
-                )
+                raise ValueError("One-time timer requires 'due_at' (ISO 8601 datetime)")
             config["next_due"] = due_at.isoformat()
             config.pop("due_at", None)
         else:

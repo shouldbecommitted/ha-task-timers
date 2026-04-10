@@ -1,4 +1,5 @@
 """Coordinator for Task Timers."""
+
 import logging
 from datetime import timedelta
 
@@ -73,7 +74,9 @@ class TaskTimersCoordinator(DataUpdateCoordinator):
 
     async def _async_notify_expired(self, timer: Timer) -> None:
         """Create a persistent notification and fire a custom event."""
-        _LOGGER.info("Timer expired, firing notification: %s (%s)", timer.name, timer.id)
+        _LOGGER.info(
+            "Timer expired, firing notification: %s (%s)", timer.name, timer.id
+        )
 
         # Persistent notification — visible in HA's bell menu until dismissed.
         await self.hass.services.async_call(

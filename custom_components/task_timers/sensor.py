@@ -1,4 +1,5 @@
 """Sensor platform for Task Timers — exposes each timer as a TIMESTAMP sensor."""
+
 from __future__ import annotations
 
 import logging

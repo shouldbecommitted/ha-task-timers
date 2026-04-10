@@ -1,4 +1,5 @@
 """Config flow for Task Timers."""
+
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
@@ -13,9 +14,7 @@ class TaskTimersConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
     MINOR_VERSION = 1
 
-    async def async_step_user(
-        self, user_input: dict | None = None
-    ) -> FlowResult:
+    async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
         """Handle the initial step."""
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
@@ -31,10 +30,7 @@ class TaskTimersConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        "name",
-                        default="Task Timers"
-                    ): str,
+                    vol.Required("name", default="Task Timers"): str,
                 }
             ),
             description_placeholders={},

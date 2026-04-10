@@ -1,4 +1,5 @@
 """Storage handler for Task Timers."""
+
 import logging
 import uuid
 from typing import Any
@@ -27,7 +28,9 @@ class TaskTimersStorage:
             data = await self.store.async_load()
             if data:
                 self.data = data
-                _LOGGER.debug(f"Loaded {len(self.data.get('timers', []))} timers from storage")
+                _LOGGER.debug(
+                    f"Loaded {len(self.data.get('timers', []))} timers from storage"
+                )
             else:
                 self.data = {"timers": [], "history": []}
                 await self.async_save()

@@ -1,4 +1,5 @@
 """REST API views backing the Task Timers admin panel."""
+
 from __future__ import annotations
 
 import logging
@@ -164,9 +165,7 @@ class TaskTimersDeleteView(_TaskTimersBaseView):
         return self.json({"success": True})
 
 
-def _clean_schedule_kwargs(
-    payload: dict[str, Any], timer_type: str
-) -> dict[str, Any]:
+def _clean_schedule_kwargs(payload: dict[str, Any], timer_type: str) -> dict[str, Any]:
     """Strip irrelevant/empty schedule fields from a payload."""
     kwargs: dict[str, Any] = {}
 
