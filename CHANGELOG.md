@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-04-10
+
+### Fixed
+- Black formatting and unused import (`HomeAssistant` in `config_flow.py`) that caused the lint CI job to fail on the v1.3.0 push. No functional changes.
+
+### Changed
+- Release workflow now runs the lint job (`black`, `flake8`) as a required gate before creating the GitHub Release or running HACS validation, so lint failures block a release rather than being silently ignored.
+
 ## [1.3.0] - 2026-04-10
 
 ### Added
