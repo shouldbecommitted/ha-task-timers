@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task Timers - Admin Panel</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      color: #1976d2;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 4px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button.primary {
+      background: #1976d2;
+      color: white;
+    }
+
+    button.primary:hover {
+      background: #1565c0;
+    }
+
+    button.secondary {
+      background: #e0e0e0;
+      color: #333;
+    }
+
+    button.secondary:hover {
+      background: #d0d0d0;
+    }
+
+    button.danger {
+      background: #d32f2f;
+      color: white;
+    }
+
+    button.danger:hover {
+      background: #c62828;
+    }
+
+    .timers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .timer-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .timer-card h3 {
+      margin-bottom: 12px;
+      color: #1976d2;
+    }
+
+    .timer-info {
+      font-size: 0.9em;
+      color: #666;
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+
+    .timer-info strong {
+      color: #333;
+    }
+
+    .timer-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .timer-actions button {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 0.9em;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal h2 {
+      margin-bottom: 20px;
+      color: #1976d2;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1em;
+      font-family: inherit;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #1976d2;
+      box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+    }
+
+    .form-group small {
+      display: block;
+      margin-top: 4px;
+      color: #999;
+      font-size: 0.85em;
+    }
+
+    .form-half {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-half .form-group {
+      margin-bottom: 0;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .modal-actions button {
+      flex: 1;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+    }
+
+    .empty-state svg {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #1976d2;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      font-weight: 500;
+      margin-right: 4px;
+      margin-bottom: 8px;
+    }
+
+    .badge.one-time {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+
+    .badge.recurring {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .status {
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      margin: 12px 0;
+      text-align: center;
+    }
+
+    .status.success {
+      background: #c8e6c9;
+      color: #2e7d32;
+    }
+
+    .status.error {
+      background: #ffcdd2;
+      color: #c62828;
+    }
+
+    .modal-content {
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📋 Task Timers Admin</h1>
+      <p>Manage maintenance tasks and timers for your smart home</p>
+      <div class="button-group">
+        <button class="primary" onclick="openAddModal()">+ Add Timer</button>
+        <button class="secondary" onclick="refreshTimers()">🔄 Refresh</button>
+      </div>
+    </header>
+
+    <div id="statusMessage"></div>
+    <div id="timersContainer" class="timers-grid"></div>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div id="timerModal" class="modal">
+    <div class="modal-content">
+      <button class="close-btn" onclick="closeModal()">&times;</button>
+      <h2 id="modalTitle">Add Timer</h2>
+      
+      <form id="timerForm">
+        <div class="form-group">
+          <label for="timerName">Timer Name *</label>
+          <input type="text" id="timerName" placeholder="e.g., AC Filter" required />
+        </div>
+
+        <div class="form-group">
+          <label for="timerType">Timer Type *</label>
+          <select id="timerType" onchange="updateTimerTypeFields()">
+            <option value="one_time">One-time</option>
+            <option value="recurring">Recurring</option>
+          </select>
+        </div>
+
+        <div id="intervalFields">
+          <div class="form-half">
+            <div class="form-group">
+              <label for="intervalDays">Days</label>
+              <input type="number" id="intervalDays" placeholder="30" min="0" />
+            </div>
+            <div class="form-group">
+              <label for="intervalHours">Hours</label>
+              <input type="number" id="intervalHours" placeholder="0" min="0" max="23" />
+            </div>
+          </div>
+        </div>
+
+        <div id="cronFields" style="display: none;">
+          <div class="form-group">
+            <label for="cronPattern">Cron Pattern (Optional)</label>
+            <input type="text" id="cronPattern" placeholder="e.g., 0 0 1 * * (1st of month)" />
+            <small>Format: minute hour day month weekday</small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="warningDays">Warning Days</label>
+          <input type="number" id="warningDays" value="7" min="0" />
+          <small>Show alert when timer <n this many days before expiry</small>
+        </div>
+
+        <div class="form-group">
+          <label for="notifyType">Notification Type</label>
+          <select id="notifyType">
+            <option value="none">None</option>
+            <option value="persistent_notification">Persistent Notification</option>
+            <option value="event">Fire Event</option>
+            <option value="service_call">Service Call</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="tags">Tags (comma-separated)</label>
+          <input type="text" id="tags" placeholder="e.g., filter, maintenance" />
+        </div>
+
+        <div class="modal-actions">
+          <button type="submit" class="primary">Save Timer</button>
+          <button type="button" class="secondary" onclick="closeModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let currentEditingId = null;
+
+    async function loadTimers() {
+      const container = document.getElementById("timersContainer");
+      container.innerHTML = '<div class="loading"><div class="spinner"></div> Loading timers...</div>';
+
+      try {
+        const response = await fetch("/api/task_timers/list", {
+          headers: {
+            Authorization: `Bearer ${sessionStorage.getItem("ha_auth_token")}`,
+          },
+        });
+
+        if (!response.ok) throw new Error("Failed to load timers");
+
+        const data = await response.json();
+        renderTimers(data.timers || []);
+      } catch (error) {
+        console.error("Error loading timers:", error);
+        container.innerHTML = `
+          <div class="empty-state">
+            <div>⚠️ Failed to load timers</div>
+            <small>${error.message}</small>
+          </div>
+        `;
+      }
+    }
+
+    function renderTimers(timers) {
+      const container = document.getElementById("timersContainer");
+
+      if (timers.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
+            <div>No timers configured yet</div>
+            <small>Click "Add Timer" to create your first timer</small>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = timers
+        .map((timer) => {
+          const remaining = formatRemaining(timer.remaining_seconds);
+          const statusClass = timer.is_expired ? "expired" : timer.is_warning ? "warning" : "normal";
+
+          return `
+            <div class="timer-card">
+              <h3>${timer.name}</h3>
+              <div class="timer-info">
+                <div>
+                  <span class="badge ${timer.type === "recurring" ? "recurring" : "one-time"}">
+                    ${timer.type === "recurring" ? "Recurring" : "One-time"}
+                  </span>
+                </div>
+                <div><strong>Remaining:</strong> <span class="${statusClass}">${remaining}</span></div>
+                <div><strong>Type:</strong> ${timer.type}</div>
+                ${timer.last_reset ? `<div><strong>Last Reset:</strong> ${new Date(timer.last_reset).toLocaleDateString()}</div>` : ""}
+              </div>
+              <div class="timer-actions">
+                <button class="secondary" onclick="editTimer('${timer.id}')">Edit</button>
+                <button class="secondary" onclick="resetTimer('${timer.id}')">Reset</button>
+                <button class="danger" onclick="deleteTimer('${timer.id}')">Delete</button>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function formatRemaining(seconds) {
+      if (seconds < 0) {
+        const abs = Math.abs(seconds);
+        const days = Math.floor(abs / 86400);
+        const hours = Math.floor((abs % 86400) / 3600);
+        return `Expired ${days}d ${hours}h ago`;
+      }
+
+      const days = Math.floor(seconds / 86400);
+      const hours = Math.floor((seconds % 86400) / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+
+      if (days > 0) return `${days}d ${hours}h`;
+      if (hours > 0) return `${hours}h ${minutes}m`;
+      return `${minutes}m`;
+    }
+
+    function openAddModal() {
+      currentEditingId = null;
+      document.getElementById("modalTitle").textContent = "Add Timer";
+      document.getElementById("timerForm").reset();
+      document.getElementById("timerType").value = "one_time";
+      updateTimerTypeFields();
+      document.getElementById("timerModal").classList.add("active");
+    }
+
+    async function editTimer(id) {
+      // Fetch timer details and populate form
+      currentEditingId = id;
+      document.getElementById("modalTitle").textContent = "Edit Timer";
+      document.getElementById("timerModal").classList.add("active");
+    }
+
+    function closeModal() {
+      document.getElementById("timerModal").classList.remove("active");
+      currentEditingId = null;
+    }
+
+    function updateTimerTypeFields() {
+      const type = document.getElementById("timerType").value;
+      document.getElementById("intervalFields").style.display = type === "recurring" ? "block" : "none";
+      document.getElementById("cronFields").style.display = type === "recurring" ? "block" : "none";
+    }
+
+    async function submitForm(e) {
+      e.preventDefault();
+
+      const formData = {
+        name: document.getElementById("timerName").value,
+        type: document.getElementById("timerType").value,
+        interval_days: parseInt(document.getElementById("intervalDays").value) || 0,
+        interval_hours: parseInt(document.getElementById("intervalHours").value) || 0,
+        cron_pattern: document.getElementById("cronPattern").value || null,
+        warning_days: parseInt(document.getElementById("warningDays").value) || 7,
+        notify_type: document.getElementById("notifyType").value,
+        tags: document.getElementById("tags").value.split(",").map(t => t.trim()).filter(Boolean),
+      };
+
+      try {
+        const response = await fetch(
+          currentEditingId 
+            ? `/api/task_timers/update/${currentEditingId}`
+            : "/api/task_timers/create",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${sessionStorage.getItem("ha_auth_token")}`,
+            },
+            body: JSON.stringify(formData),
+          }
+        );
+
+        if (!response.ok) throw new Error("Failed to save timer");
+
+        showStatus("Timer saved successfully!", "success");
+        closeModal();
+        await loadTimers();
+      } catch (error) {
+        showStatus(`Error: ${error.message}`, "error");
+      }
+    }
+
+    async function resetTimer(id) {
+      if (!confirm("Reset this timer?")) return;
+
+      try {
+        const response = await fetch(`/api/task_timers/reset/${id}`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${sessionStorage.getItem("ha_auth_token")}`,
+          },
+        });
+
+        if (!response.ok) throw new Error("Failed to reset timer");
+
+        showStatus("Timer reset!", "success");
+        await loadTimers();
+      } catch (error) {
+        showStatus(`Error: ${error.message}`, "error");
+      }
+    }
+
+    async function deleteTimer(id) {
+      if (!confirm("Delete this timer permanently?")) return;
+
+      try {
+        const response = await fetch(`/api/task_timers/delete/${id}`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${sessionStorage.getItem("ha_auth_token")}`,
+          },
+        });
+
+        if (!response.ok) throw new Error("Failed to delete timer");
+
+        showStatus("Timer deleted!", "success");
+        await loadTimers();
+      } catch (error) {
+        showStatus(`Error: ${error.message}`, "error");
+      }
+    }
+
+    function refreshTimers() {
+      loadTimers();
+    }
+
+    function showStatus(message, type) {
+      const el = document.getElementById("statusMessage");
+      el.innerHTML = `<div class="status ${type}">${message}</div>`;
+      setTimeout(() => {
+        el.innerHTML = "";
+      }, 4000);
+    }
+
+    document.getElementById("timerForm").addEventListener("submit", submitForm);
+
+    // Load timers on page load
+    loadTimers();
+  </script>
+</body>
+</html>
