@@ -169,7 +169,11 @@ class TimerManager:
             config["next_due"] = due_at.isoformat()
             config.pop("due_at", None)
         else:
-            cron = kwargs.get("cron_pattern", "").strip() if kwargs.get("cron_pattern") else ""
+            cron = (
+                kwargs.get("cron_pattern", "").strip()
+                if kwargs.get("cron_pattern")
+                else ""
+            )
             days = kwargs.get("interval_days", 0) or 0
             hours = kwargs.get("interval_hours", 0) or 0
 
