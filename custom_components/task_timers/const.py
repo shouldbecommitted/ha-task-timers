@@ -10,7 +10,6 @@ LOGGER = logging.getLogger(__name__)
 SERVICE_CREATE_TIMER = "create_timer"
 SERVICE_RESET_TIMER = "reset_timer"
 SERVICE_DELETE_TIMER = "delete_timer"
-SERVICE_LIST_TIMERS = "list_timers"
 
 # Storage version
 STORAGE_VERSION = 1

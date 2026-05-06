@@ -149,12 +149,12 @@ class TimerManager:
         """Save all timers to storage."""
         await self.storage.async_save()
 
-    def create_timer(self, name: str, timer_type: str, **kwargs) -> "Timer":
+    async def create_timer(self, name: str, timer_type: str, **kwargs) -> "Timer":
         """Create and return a new timer.
 
         For one-time timers, ``due_at`` (ISO datetime string) is required.
-        For recurring timers, the next due date is computed from
-        ``interval_days``/``interval_hours`` or ``cron_pattern``.
+        For recurring timers, ``interval_days``, ``interval_hours``, or
+        ``cron_pattern`` must be provided.
         """
         config: dict[str, Any] = {
             "name": name,
@@ -169,13 +169,29 @@ class TimerManager:
             config["next_due"] = due_at.isoformat()
             config.pop("due_at", None)
         else:
-            # Use a temporary Timer to reuse the schedule calculation logic
+            cron = kwargs.get("cron_pattern", "").strip() if kwargs.get("cron_pattern") else ""
+            days = kwargs.get("interval_days", 0) or 0
+            hours = kwargs.get("interval_hours", 0) or 0
+
+            if not cron and not days and not hours:
+                raise ValueError(
+                    "Recurring timer requires 'interval_days', 'interval_hours', "
+                    "or 'cron_pattern'"
+                )
+
+            if cron:
+                try:
+                    croniter(cron, dt_util.now())
+                except Exception as err:
+                    raise ValueError(f"Invalid cron pattern: {err}") from err
+
             config["next_due"] = Timer(config)._calculate_next_due().isoformat()
 
         timer_id = self.storage.add_timer(config)
         timer = Timer(self.storage.get_timer(timer_id))
         self.timers[timer_id] = timer
         self.storage.add_history_entry(timer_id, "created")
+        await self.storage.async_save()
 
         _LOGGER.info(f"Created timer: {name} (ID: {timer_id})")
         async_dispatcher_send(self.hass, SIGNAL_TIMER_ADDED, timer_id)
@@ -192,17 +208,19 @@ class TimerManager:
             key=lambda t: t.next_due,
         )
 
-    def reset_timer(self, timer_id: str) -> bool:
+    async def reset_timer(self, timer_id: str) -> bool:
         """Reset timer and return success."""
         if timer := self.get_timer(timer_id):
             timer.reset(self.storage)
+            await self.storage.async_save()
             return True
         return False
 
-    def delete_timer(self, timer_id: str) -> bool:
+    async def delete_timer(self, timer_id: str) -> bool:
         """Delete a timer and return success."""
         if self.storage.delete_timer(timer_id):
             self.timers.pop(timer_id, None)
+            await self.storage.async_save()
             _LOGGER.info(f"Deleted timer: {timer_id}")
             async_dispatcher_send(self.hass, SIGNAL_TIMER_REMOVED, timer_id)
             return True

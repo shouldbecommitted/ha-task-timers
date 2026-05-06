@@ -80,8 +80,11 @@ class TaskTimersCoordinator(DataUpdateCoordinator):
 
         # Fire all pending expiry notifications concurrently.
         if newly_expired_timers:
+            for t in newly_expired_timers:
+                self.storage.add_history_entry(t.id, "expired")
             await asyncio.gather(
-                *(self._async_notify_expired(t) for t in newly_expired_timers)
+                *(self._async_notify_expired(t) for t in newly_expired_timers),
+                self.storage.async_save(),
             )
 
         self._notified_ids = expired_ids

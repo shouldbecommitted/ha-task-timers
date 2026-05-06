@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2026-05-06
+
+### Fixed
+- **Schedule validation at creation time.** Recurring timers now require at least one of `interval_days`, `interval_hours`, or `cron_pattern`. Invalid cron patterns raise `ValueError` immediately instead of silently falling back to a 30-day default.
+
+### Changed
+- `TimerManager.create_timer`, `reset_timer`, and `delete_timer` are now `async` and call `self.storage.async_save()` internally. Callers no longer need to remember to save after each operation, eliminating a source of silent data loss on restart.
+- Coordinator now writes an `"expired"` history entry for each timer that triggers a notification, making expiry events visible in timer history.
+
+### Removed
+- Dead `SERVICE_LIST_TIMERS` constant — HA services are fire-and-forget; listing timers is done via the REST API and sensor entities.
+
+### Documentation
+- Removed spurious first line from `requirements-dev.txt`.
+- Fixed `EXAMPLES.md` formatting artifact (`1#` → `#`).
+- Updated `STRUCTURE.md` to reflect the current codebase (removed obsolete `frontend/` references, added `sensor.py`, `views.py`, `www/`).
+- Updated `INSTALLATION.md` to use sensor-based dashboard recipes instead of the removed Lit custom cards.
+
 ## [1.3.2] - 2026-04-10
 
 ### Fixed

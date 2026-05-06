@@ -99,10 +99,9 @@ class TaskTimersCreateView(_TaskTimersBaseView):
         kwargs = _clean_schedule_kwargs(payload, timer_type)
 
         try:
-            timer = self._timer_manager.create_timer(name, timer_type, **kwargs)
+            timer = await self._timer_manager.create_timer(name, timer_type, **kwargs)
         except ValueError as err:
             return self.json_message(str(err), HTTPStatus.BAD_REQUEST)
-        await self._storage.async_save()
         return self.json(_serialize_timer(timer))
 
 
@@ -145,9 +144,8 @@ class TaskTimersResetView(_TaskTimersBaseView):
     name = "api:task_timers:reset"
 
     async def post(self, request: web.Request, timer_id: str) -> web.Response:
-        if not self._timer_manager.reset_timer(timer_id):
+        if not await self._timer_manager.reset_timer(timer_id):
             return self.json_message("Timer not found", HTTPStatus.NOT_FOUND)
-        await self._storage.async_save()
         self._coordinator.dismiss_notification(timer_id)
         return self.json({"success": True})
 
@@ -159,9 +157,8 @@ class TaskTimersDeleteView(_TaskTimersBaseView):
     name = "api:task_timers:delete"
 
     async def post(self, request: web.Request, timer_id: str) -> web.Response:
-        if not self._timer_manager.delete_timer(timer_id):
+        if not await self._timer_manager.delete_timer(timer_id):
             return self.json_message("Timer not found", HTTPStatus.NOT_FOUND)
-        await self._storage.async_save()
         self._coordinator.dismiss_notification(timer_id)
         return self.json({"success": True})
 

@@ -1,4 +1,4 @@
-1# Example Configurations for Task Timers
+# Example Configurations for Task Timers
 
 ## Example 1: Basic Filter Changes (Recurring)
 

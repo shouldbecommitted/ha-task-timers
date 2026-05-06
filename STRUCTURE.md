@@ -11,15 +11,6 @@ ha-task-timers/
 │
 ├── custom_components/
 │   └── task_timers/
-│       ├── __init__.py                # Integration entry point
-│       ├── manifest.json               # HACS metadata
-│       ├── const.py                    # Constants and enums
-│       ├── config_flow.py              # Configuration UI
-│       ├── coordinator.py              # Data coordinator
-│       ├── storage.py                  # Persistent storage handler
-│       ├── timer_manager.py            # Timer business logic
-│       └── translations/               # i18n files (future)
-│
 ├── frontend/
 │   ├── task-timer-card.js             # Main timer display card
 │   ├── task-expiry-card.js            # Expiry alert card
@@ -48,10 +39,8 @@ ha-task-timers/
 - `storage.py` — HA storage persistence layer
 - `coordinator.py` — Data update coordinator for entity platform
 
-### Frontend (JavaScript)
-- `task-timer-card.js` — Displays all timers with reset buttons
-- `task-expiry-card.js` — Shows expiring/expired timers
-- `admin-panel.html` — Standalone admin UI for CRUD operations
+### Frontend (HTML/JS)
+- `www/admin-panel.html` — Standalone admin UI for CRUD operations (sidebar iframe)
 
 ### GitHub
 - `.github/workflows/` — GitHub Actions for CI/CD

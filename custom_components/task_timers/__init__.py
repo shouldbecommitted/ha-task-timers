@@ -144,16 +144,14 @@ def _register_services(
         timer_type = call.data.get("type", "recurring")
         kwargs = {k: v for k, v in call.data.items() if k not in ["name", "type"]}
 
-        timer_manager.create_timer(name, timer_type, **kwargs)
-        await storage.async_save()
+        await timer_manager.create_timer(name, timer_type, **kwargs)
         LOGGER.info(f"Service: Created timer '{name}'")
 
     async def handle_reset_timer(call) -> None:
         """Handle reset timer service call."""
         timer_id = call.data["timer_id"]
 
-        if timer_manager.reset_timer(timer_id):
-            await storage.async_save()
+        if await timer_manager.reset_timer(timer_id):
             coordinator.dismiss_notification(timer_id)
             LOGGER.info(f"Service: Reset timer {timer_id}")
         else:
@@ -163,8 +161,7 @@ def _register_services(
         """Handle delete timer service call."""
         timer_id = call.data["timer_id"]
 
-        if timer_manager.delete_timer(timer_id):
-            await storage.async_save()
+        if await timer_manager.delete_timer(timer_id):
             coordinator.dismiss_notification(timer_id)
             LOGGER.info(f"Service: Deleted timer {timer_id}")
         else:

@@ -23,24 +23,37 @@
 3. Click **Install**
 4. **Restart Home Assistant** (Settings > System > Restart)
 
-### 3. Add to Lovelace
+### 3. View Timers in Your Dashboard
 
-After restart, add cards to your dashboard:
+Each timer is exposed as a `sensor.*` entity with `device_class: timestamp`.
+The native value is the next due date — useful with Mushroom or Tile cards.
 
-#### YAML Mode:
+#### Mushroom Template Card (recommended):
 ```yaml
-views:
-  - title: Home
-    cards:
-      - type: custom:task-timer-card
-      - type: custom:task-expiry-card
-        days_warning: 14
+type: custom:mushroom-template-card
+entity: sensor.my_task_timer
+primary: '{{ state_attr(entity, "name") }}'
+secondary: >
+  {% if state_attr(entity, "is_expired") %}Overdue
+  {% else %}{{ (state_attr(entity, "remaining_seconds") // 86400) }} days left
+  {% endif %}
+icon: mdi:clipboard-text-clock-outline
+icon_color: >
+  {% if state_attr(entity, "is_expired") %}red
+  {% elif state_attr(entity, "is_warning") %}amber
+  {% else %}green
+{% endif %}
 ```
 
-#### UI Mode:
-1. Click **+ Create New Card**
-2. Click on "Custom card"
-3. Select **Task Timer Card** or **Task Expiry Card**
+#### Entities Card:
+```yaml
+type: entities
+entities:
+  - entity: sensor.change_ac_filter
+  - entity: sensor.clean_mosquito_filter
+```
+
+See [EXAMPLES.md](EXAMPLES.md) for more dashboard recipes.
 
 ### 4. Configure Timers
 
@@ -54,10 +67,10 @@ views:
 
 ## Troubleshooting
 
-### Timers not showing in card
-- Ensure Home Assistant has restarted
-- Check browser console for JavaScript errors (F12)
-- Clear browser cache and reload
+### Timers not showing as entities
+- Ensure Home Assistant has restarted after installation
+- Check **Developer Tools → States** and filter for `sensor.` entities
+- If entities exist but show as unavailable, check `home-assistant.log` for coordinator errors
 
 ### Integration not appearing in device list
 - Verify installation completed (check logs)
