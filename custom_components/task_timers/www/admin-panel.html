@@ -309,16 +309,29 @@
       try {
         const raw = localStorage.getItem("hassTokens");
         if (!raw) return null;
-        return JSON.parse(raw).access_token || null;
+        const tokens = JSON.parse(raw);
+        const token = tokens.access_token;
+        if (!token) return null;
+        if (tokens.expires && Date.now() > tokens.expires * 1000) return null;
+        return token;
       } catch {
         return null;
       }
     }
 
+    // Track auth state so we can stop retrying when auth is unavailable
+    let authAvailable = false;
+    let refreshInterval = null;
+
     async function api(path, options = {}) {
       const token = getAuthToken();
+      if (!token) {
+        authAvailable = false;
+        throw new Error("AUTH_REQUIRED");
+      }
+      authAvailable = true;
       const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch(path, { ...options, headers });
       if (!res.ok) {
         const txt = await res.text().catch(() => "");
@@ -340,11 +353,38 @@
         timersCache = data.timers || [];
         renderTimers(timersCache);
       } catch (err) {
+        const msg = err.message;
+        if (msg === "AUTH_REQUIRED") {
+          if (refreshInterval) {
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+          }
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="big">&#x1f512;</div>
+              <div>Not authenticated</div>
+              <small>Log in to Home Assistant and refresh this page.</small>
+            </div>`;
+          return;
+        }
+        if (msg.startsWith("401") || msg.startsWith("403")) {
+          if (refreshInterval) {
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+          }
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="big">&#x1f512;</div>
+              <div>Session expired</div>
+              <small>Refresh this page after logging in again.</small>
+            </div>`;
+          return;
+        }
         container.innerHTML = `
           <div class="empty-state">
-            <div class="big">⚠</div>
+            <div class="big">&#x26a0;</div>
             <div>Failed to load timers</div>
-            <small>${escapeHtml(err.message)}</small>
+            <small>${escapeHtml(msg)}</small>
           </div>`;
       }
     }
@@ -572,10 +612,22 @@
       else if (action === "delete") deleteTimer(id);
     });
 
+    // Resume auto-refresh when auth token becomes available (e.g. set by
+    // the parent HA frame after login or token refresh). The storage event
+    // fires in sibling documents on the same origin (including iframes).
+    window.addEventListener("storage", function (e) {
+      if (e.key === "hassTokens" && e.newValue) {
+        if (!refreshInterval) {
+          refreshInterval = setInterval(loadTimers, 30000);
+        }
+        loadTimers();
+      }
+    });
+
     // Initial load
     loadTimers();
     // Refresh every 30s so countdowns stay roughly current
-    setInterval(loadTimers, 30000);
+    refreshInterval = setInterval(loadTimers, 30000);
   </script>
 </body>
 </html>
