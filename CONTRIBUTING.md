@@ -17,8 +17,8 @@ Thank you for your interest in contributing to Task Timers! Here's how to get st
 
 ## Code Standards
 
-- **Python**: Follow PEP 8 (enforced via Black)
-- **JavaScript/Frontend**: Use standard Lit patterns
+- **Python**: Follow PEP 8 (enforced via Black and flake8)
+- **Frontend**: The admin panel (`www/admin-panel.html`) is vanilla JavaScript/CSS — no build step
 - **Commit messages**: Clear, descriptive (e.g., "Fix timer reset logic")
 
 ## Testing
@@ -30,14 +30,15 @@ Before submitting a PR:
 black custom_components/task_timers
 
 # Run linters
-flake8 custom_components/task_timers
-pylint custom_components/task_timers
+flake8 custom_components/task_timers --max-line-length=100 --ignore=E203,E501,W503
 ```
+
+Both checks are also run in CI on every push and as a release gate.
 
 ## Pull Request Process
 
-1. Update README.md with any new features
-2. Ensure all tests pass
+1. Update README.md and EXAMPLES.md if adding new features
+2. Ensure lint checks pass (`black` + `flake8`)
 3. Link any related issues (#123)
 4. Describe your changes clearly in the PR description
 

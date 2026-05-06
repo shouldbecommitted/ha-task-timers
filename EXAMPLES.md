@@ -1,151 +1,204 @@
 # Example Configurations for Task Timers
 
-## Example 1: Basic Filter Changes (Recurring)
+## Example 1: Basic Recurring Timers
+
+Create via the admin panel (sidebar → Task Timers → + Add Timer) or service call:
 
 ```yaml
-# Create via admin panel or service call
-- name: "AC Filter"
-  type: "recurring"
+service: task_timers.create_timer
+data:
+  name: "AC Filter"
+  type: recurring
   interval_days: 90
-  interval_hours: 0
   warning_days: 14
-  notify_type: "persistent_notification"
-  tags: ["filter", "hvac"]
+```
 
-- name: "Mosquito Filter"
-  type: "recurring"
+```yaml
+service: task_timers.create_timer
+data:
+  name: "Mosquito Filter"
+  type: recurring
   interval_days: 30
   warning_days: 7
-  notify_type: "persistent_notification"
-  tags: ["filter", "hvac"]
 ```
 
-## Example 2: Using Cron for Complex Schedules
+## Example 2: Cron-Based Schedules
 
 ```yaml
-# Monthly on the 1st
-- name: "Monthly Report"
-  type: "recurring"
-  cron_pattern: "0 9 1 * *"  # 9am on 1st of month
-  notify_type: "persistent_notification"
-  tags: ["report"]
+# Monthly on the 1st at 9am
+service: task_timers.create_timer
+data:
+  name: "Monthly Report"
+  type: recurring
+  cron_pattern: "0 9 1 * *"
 
 # Every Monday at 7am
-- name: "Weekly Backup"
-  type: "recurring"
-  cron_pattern: "0 7 ? * MON"
-  notify_type: "event"
-  tags: ["backup"]
+service: task_timers.create_timer
+data:
+  name: "Weekly Backup"
+  type: recurring
+  cron_pattern: "0 7 * * MON"
 
 # Daily at 6pm
-- name: "Evening Check"
-  type: "recurring"
+service: task_timers.create_timer
+data:
+  name: "Evening Check"
+  type: recurring
   cron_pattern: "0 18 * * *"
-  notify_type: "none"
 ```
 
-## Example 3: One-time Tasks
+## Example 3: One-Time Tasks
 
 ```yaml
-# One-time timer (no recurrence)
-- name: "Update Home Assistant"
-  type: "one_time"
-  warning_days: 0
-  notify_type: "none"
+service: task_timers.create_timer
+data:
+  name: "Update Home Assistant"
+  type: one_time
+  due_at: "2026-06-01T09:00:00"
+  warning_days: 3
 ```
 
-## Example 4: Automation with Notifications
+After the due date passes, resetting a one-time timer marks it completed and it disappears from the active list.
 
-### Template Sensor for Display
+## Example 4: Dashboard Cards
+
+### Mushroom Template Card (recommended)
+
 ```yaml
-# configuration.yaml
-template:
-  - sensor:
-      - name: "AC Filter Remaining"
-        unique_id: sensor_ac_filter_remaining
-        unit_of_measurement: "days"
-        availability: "{{ states('timer.ac_filter') != 'unknown' }}"
-        state: >
-          {% set state_attr = states.timer.ac_filter if states('timer.ac_filter') != 'unknown' else {} %}
-          {{ (state_attr('timer.ac_filter').remaining_seconds / 86400) | round(1) if 'timer' in state_attr else 'unknown' }}
-```
-
-### Automations for Notifications
-```yaml
-# automations.yaml
-- id: '1711500000001'
-  alias: "Notify when AC filter expires"
-  trigger:
-    platform: numeric_state
-    entity_id: sensor.ac_filter_remaining
-    below: 0
-  action:
-    service: notify.persistent_notification
-    data:
-      title: "AC Filter Maintenance"
-      message: "Time to change the AC filter!"
-
-- id: '1711500000002'
-  alias: "Warn when AC filter expiring soon"
-  trigger:
-    platform: numeric_state
-    entity_id: sensor.ac_filter_remaining
-    below: 14
-    above: 0
-  action:
-    service: notify.mobile_app_iphone
-    data:
-      title: "AC Filter"
-      message: "Filter change due in {{ states('sensor.ac_filter_remaining') }} days"
-
-- id: '1711500000003'
-  alias: "Reset AC filter on schedule"
-  trigger:
-    platform: time
-    at: "09:00:00"
-  condition:
-    condition: time
-    weekday:
-      - sun
-  action:
-    service: task_timers.reset_timer
-    data:
-      timer_id: "ac_filter_timer_id_here"
-```
-
-## Example 5: Dashboard Configuration
-
-### YAML Mode
-```yaml
-views:
-  - title: Maintenance
-    icon: mdi:tools
-    cards:
-      - type: entities
-        title: "Upcoming Tasks"
-        entities:
-          - sensor.ac_filter_remaining
-          - sensor.mosquito_filter_remaining
-
-      - type: custom:task-timer-card
-        title: "All Timers"
-
-      - type: custom:task-expiry-card
-        days_warning: 30
-        title: "Expiring This Month"
-```
-
-### Using Custom:button-card
-```yaml
-type: custom:button-card
-entity: timer.ac_filter
-name: AC Filter
-template: colorful_icon
+type: custom:mushroom-template-card
+entity: sensor.task_timers_ac_filter_id
+primary: AC Filter
+secondary: >
+  {% if state_attr(entity, 'is_expired') %}
+    Overdue by {{ relative_time(states(entity) | as_datetime) }}
+  {% else %}
+    Due {{ relative_time(states(entity) | as_datetime) }}
+  {% endif %}
+icon: mdi:air-filter
+icon_color: >
+  {% if state_attr(entity, 'is_expired') %}red
+  {% elif state_attr(entity, 'is_warning') %}orange
+  {% else %}green{% endif %}
 tap_action:
   action: call-service
   service: task_timers.reset_timer
-  service_data:
-    timer_id: "ac_filter_id"
+  data:
+    timer_id: "{{ state_attr(entity, 'timer_id') }}"
+```
+
+### Entities Card
+
+```yaml
+type: entities
+title: Maintenance Tasks
+entities:
+  - entity: sensor.task_timers_ac_filter_id
+    name: AC Filter
+  - entity: sensor.task_timers_mosquito_filter_id
+    name: Mosquito Filter
+```
+
+### Conditional Card for Overdue Items
+
+```yaml
+type: conditional
+conditions:
+  - condition: state
+    entity: sensor.task_timers_ac_filter_id
+    attribute: is_expired
+    state: true
+card:
+  type: markdown
+  content: "**AC Filter is overdue — change it now!**"
+```
+
+### Auto-Entities (all timers dynamically)
+
+```yaml
+type: custom:auto-entities
+card:
+  type: entities
+  title: All Tasks
+filter:
+  include:
+    - attributes:
+        timer_id: "*"
+      options:
+        secondary_info: last-changed
+sort:
+  method: state
+```
+
+## Example 5: Automations with Notifications
+
+### Trigger on timer expiry event
+
+```yaml
+- alias: "Timer expired — push notification"
+  trigger:
+    - platform: event
+      event_type: task_timers_timer_expired
+  action:
+    - service: notify.mobile_app_phone
+      data:
+        title: "Task due: {{ trigger.event.data.name }}"
+        message: "Open Task Timers to reset it."
+```
+
+### Trigger on attribute change (specific timer)
+
+```yaml
+- alias: "AC filter due — notify"
+  trigger:
+    - platform: state
+      entity_id: sensor.task_timers_ac_filter_id
+      attribute: is_expired
+      to: true
+  action:
+    - service: notify.mobile_app_phone
+      data:
+        title: "AC Filter"
+        message: "Time to change the AC filter."
+```
+
+### Warn when expiring soon
+
+```yaml
+- alias: "AC filter expiring soon"
+  trigger:
+    - platform: state
+      entity_id: sensor.task_timers_ac_filter_id
+      attribute: is_warning
+      to: true
+  action:
+    - service: notify.mobile_app_phone
+      data:
+        title: "AC Filter"
+        message: >
+          Filter due in {{ (state_attr('sensor.task_timers_ac_filter_id', 'remaining_seconds') // 86400) }} days
+```
+
+### Time-based poll for any overdue timer
+
+```yaml
+- alias: "Check for overdue tasks hourly"
+  trigger:
+    - platform: time_pattern
+      minutes: "/60"
+  action:
+    - variables:
+        overdue: >
+          {{ states.sensor
+             | selectattr('attributes.timer_id', 'defined')
+             | selectattr('attributes.is_expired', 'eq', true)
+             | map(attribute='name')
+             | list }}
+    - if:
+        - "{{ overdue | count > 0 }}"
+      then:
+        - service: notify.notify
+          data:
+            message: "Overdue: {{ overdue | join(', ') }}"
 ```
 
 ## Example 6: Service Calls from Scripts
@@ -153,103 +206,81 @@ tap_action:
 ```yaml
 # scripts.yaml
 reset_all_maintenance_timers:
-  description: "Reset all maintenance timers"
+  alias: "Reset all maintenance timers"
   sequence:
     - service: task_timers.reset_timer
       data:
-        timer_id: "ac_filter_id"
+        timer_id: "{{ state_attr('sensor.task_timers_ac_filter_id', 'timer_id') }}"
     - delay:
         seconds: 2
     - service: task_timers.reset_timer
       data:
-        timer_id: "mosquito_filter_id"
-    - service: notify.persistent_notification
-      data:
-        message: "All maintenance timers reset!"
+        timer_id: "{{ state_attr('sensor.task_timers_mosquito_filter_id', 'timer_id') }}"
 ```
 
-### Call Script from Card
-```yaml
-type: custom:button-card
-name: "Reset All Timers"
-tap_action:
-  action: call-service
-  service: script.reset_all_maintenance_timers
-```
-
-## Example 7: History Tracking
+## Example 7: Template Sensor for Days Remaining
 
 ```yaml
-# Automation: Track when filters are changed
-- id: '1711500000004'
-  alias: "Create note about filter change"
-  trigger:
-    platform: call_service
-    service: task_timers.reset_timer
-  action:
-    service: note.create
-    data:
-      note: "{{ trigger.data.timer_id }} was reset at {{ now().isoformat() }}"
+# configuration.yaml
+template:
+  - sensor:
+      - name: "AC Filter Days Remaining"
+        unique_id: ac_filter_days_remaining
+        unit_of_measurement: "days"
+        state: >
+          {% set secs = state_attr('sensor.task_timers_ac_filter_id', 'remaining_seconds') %}
+          {{ (secs / 86400) | round(1) if secs is number else 'unknown' }}
 ```
 
-## Example 8: Multiple Zones (with areas)
+## Example 8: Multiple Zones (Per-Room Timers)
 
-If you want per-room timers, create separate timers per area:
+Create separate timers per area:
 
 ```yaml
 # Bedroom AC filter
 - name: "Bedroom AC Filter"
-  type: "recurring"
+  type: recurring
   interval_days: 90
   tags: ["bedroom", "filter"]
 
 # Living room AC filter
 - name: "Living Room AC Filter"
-  type: "recurring"
+  type: recurring
   interval_days: 90
   tags: ["living-room", "filter"]
-
-# Filter the card to show only bedroom
-type: custom:task-timer-card
-tags:
-  - bedroom
 ```
 
-## Mobile Notification Example
+Use auto-entities or a conditional card to group them by room.
 
-Use with `notify.mobile_app_*` or `notify.telegram`:
+## Mobile Notification with Action
+
+Tap-to-open the Task Timers panel:
 
 ```yaml
-- id: '1711500000005'
-  alias: "Mobile notification for filter change"
+- alias: "Filter change — actionable notification"
   trigger:
-    platform: state
-    entity_id: timer.ac_filter
-    to: "expired"
+    - platform: event
+      event_type: task_timers_timer_expired
   action:
-    - service: notify.mobile_app_iphone
+    - service: notify.mobile_app_phone
       data:
-        title: "🔧 AC Filter"
-        message: "Time to change the AC filter"
+        title: "Task due: {{ trigger.event.data.name }}"
+        message: "Tap to open Task Timers"
         data:
-          group: "maintenance"
-          tag: "ac_filter"
-          click_action: "/lovelace/maintenance"
+          url: "/task-timers"
 ```
 
 ## Testing Timer Functionality
 
-Use Developer Tools → Services to test:
+Use Developer Tools → Services:
 
-```json
-{
-  "name": "Test Timer",
-  "type": "one_time",
-  "interval_days": 0,
-  "interval_hours": 0,
-  "warning_days": 0,
-  "notify_type": "persistent_notification"
-}
+```yaml
+service: task_timers.create_timer
+data:
+  name: "Test Timer"
+  type: recurring
+  interval_days: 1
+  warning_days: 0
 ```
 
-Then call `task_timers.reset_timer` to test reset functionality.
+Then use `task_timers.reset_timer` and `task_timers.delete_timer` to test the full lifecycle. Check the sensor entity in **Developer Tools → States** to verify attributes.

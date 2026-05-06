@@ -42,7 +42,7 @@ data:
   warning_days: 14
 ```
 
-This creates `sensor.ac_filter` (entity ID derived from the timer name) with:
+This creates a `sensor.task_timers_<uuid>` entity (the entity ID includes the timer UUID). The friendly name shown in the UI is the timer name:
 
 | Field | Value |
 |---|---|
@@ -187,9 +187,9 @@ Or trigger off the timestamp directly:
 
 | Service | Fields | Description |
 |---|---|---|
-| `task_timers.create_timer` | `name`, `type`, `interval_days`, `interval_hours`, `cron_pattern`, `warning_days` | Create a new timer (sensor entity is added immediately) |
-| `task_timers.reset_timer` | `timer_id` | Reset a recurring timer; mark a one-time timer completed |
-| `task_timers.delete_timer` | `timer_id` | Permanently remove the timer and its sensor entity |
+| `task_timers.create_timer` | `name` (required), `type`, `interval_days`, `interval_hours`, `cron_pattern`, `due_at`, `warning_days`, `tags` | Create a new timer (sensor entity is added immediately) |
+| `task_timers.reset_timer` | `timer_id` (required) | Reset a recurring timer; mark a one-time timer completed |
+| `task_timers.delete_timer` | `timer_id` (required) | Permanently remove the timer and its sensor entity |
 
 ### Cron pattern examples
 

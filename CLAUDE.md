@@ -21,9 +21,11 @@ A PostToolUse hook runs both automatically after every Edit/Write — check stde
 The CI release workflow gates on the lint job; a lint failure blocks the release.
 
 ## Releasing
-1. Bump `version` in `manifest.json`
-2. Add a `## [x.y.z]` entry to `CHANGELOG.md`
-3. Commit, `git tag vx.y.z`, `git push origin main vx.y.z`
+1. Run `black --check custom_components/task_timers/` and `flake8 custom_components/task_timers/ --max-line-length=100 --ignore=E203,E501,W503` — both must pass with zero errors. If they fail, run `black` without `--check` to auto-format, then fix remaining flake8 issues.
+2. Bump `version` in `manifest.json`
+3. Add a `## [x.y.z]` entry to `CHANGELOG.md`
+4. Commit, `git tag vx.y.z`, `git push origin main vx.y.z`
+5. Verify the release workflow at `https://github.com/shouldbecommitted/ha-task-timers/actions` — the `lint` job must pass before the `release` and `hacs` jobs proceed.
 
 ## Agent and skill guidance
 
