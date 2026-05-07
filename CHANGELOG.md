@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-05-07
+
+### Added
+- Lovelace custom card (`task-timers-card`) for dashboards — shows summary with
+  warning/expired badge counts and a timer list, plus a full-screen management
+  dialog for CRUD operations. Place on any dashboard with `type: custom:task-timers-card`.
+- Real-time WebSocket subscription for timer updates — replaces 30s REST polling.
+- `SIGNAL_TIMER_UPDATED` dispatcher signal for timer resets and updates.
+
+### Changed
+- Replaced sidebar iframe panel with native Lovelace card. The card uses the
+  `hass` object for auth (no manual token extraction).
+- Management opens as a full-screen dialog overlay from the summary card.
+
+### Removed
+- Sidebar admin panel (`admin-panel.html`) and its iframe registration.
+
 ## [1.3.5] - 2026-05-07
 
 ### Fixed
