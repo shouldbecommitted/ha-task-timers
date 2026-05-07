@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-05-07
+
+### Changed
+- Card styling updated to match Mushroom card design language:
+  - Uses `--mush-*` CSS variables and `rgb(var(--rgb-*))` colour tokens for seamless theme blending
+  - Pill-shaped chip badges (36px height, 18px border-radius) for warning/expired counts
+  - Coloured status dots (8px circles) instead of unicode characters
+  - Mushroom typography scale (24px title, 14px primary, 12px secondary)
+  - Button styling matches Mushroom controls (42px height, 12px border-radius)
+  - `ha-card-box-shadow` for tiles and dialogs
+  - 280ms/180ms transition timing matching Mushroom's rhythm
+  - No hardcoded dark-mode colours — all backgrounds/foregrounds use theme variables
+
+### Documentation
+- README, INSTALLATION, and STRUCTURE updated for v1.4.x card-based architecture
+- New "Design" section explaining the "sensors first, card optional" philosophy
+- Lovelace resource setup instructions added
+
 ## [1.4.0] - 2026-05-07
 
 ### Added

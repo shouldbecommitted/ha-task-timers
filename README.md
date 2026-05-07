@@ -4,16 +4,18 @@
 
 # Task Timers for Home Assistant
 
-A HACS integration for Home Assistant that tracks recurring maintenance tasks (filter changes, mosquito coils, water filter swaps, etc.) as **first-class sensor entities**. No custom Lovelace cards required — every timer becomes a `sensor.*` with `device_class: timestamp`, so the rest of your dashboard, automations, voice assistants, and the mobile app all "just work".
+A HACS integration for Home Assistant that tracks recurring maintenance tasks (filter changes, mosquito coils, water filter swaps, etc.) as **first-class sensor entities** with a **native Lovelace custom card** for dashboards. Every timer becomes a `sensor.*` with `device_class: timestamp`, so the rest of your dashboard, automations, voice assistants, and the mobile app all "just work".
 
 ## Features
 
 - **One-time and recurring timers** — interval-based (every 30 days) or cron-style (1st of every month, 9am daily)
+- **Native Lovelace card** — Drop `type: custom:task-timers-card` on any dashboard. Shows warning/expired pill badges, status dots, and a full-screen management dialog for CRUD.
+- **Real-time updates** — Timer state syncs across dashboards instantly via WebSocket subscription (no polling).
 - **Persistent storage** — timers survive HA restarts
 - **Sensor entities** — one `sensor.*` per timer, `device_class: timestamp`, attributes for `is_expired`, `is_warning`, `remaining_seconds`, `last_reset`
 - **Services** — `task_timers.create_timer`, `task_timers.reset_timer`, `task_timers.delete_timer`
 - **History tracking** — every reset is recorded
-- **Bring-your-own dashboard** — drop the sensors into any card you already use (Mushroom, Entities, Markdown, Tile…)
+- **Mushroom-compatible styling** — Uses `--mush-*` CSS variables and `rgb(var(--rgb-*))` colour tokens. Blends seamlessly with Mushroom cards with zero theme config.
 
 ## Installation
 
@@ -21,13 +23,14 @@ A HACS integration for Home Assistant that tracks recurring maintenance tasks (f
 2. Install **Task Timers**.
 3. Restart Home Assistant.
 4. Go to **Settings → Devices & Services → Add Integration → Task Timers** and finish the config flow.
-5. A new **Task Timers** entry will appear in the left sidebar — that's the admin panel.
+5. Add the Lovelace resource: **Settings → Dashboards → Resources → Add Resource** with URL `/task_timers_panel/task-timers-card.js` (type: JavaScript Module).
+6. Add the card to any dashboard: `type: custom:task-timers-card`
 
 ## Creating a timer
 
-### Option 1 — Admin panel (recommended)
+### Option 1 — Dashboard card (recommended)
 
-Click **Task Timers** in the sidebar. Hit **+ Add Timer**, fill in the form, save. The list auto-refreshes every 30 seconds and shows next-due, last-reset, and status (normal / warning / expired) for every timer. You can edit, reset, or delete from the same screen.
+Click **Manage all timers** on the task-timers card in your dashboard. Hit **+ Add Timer**, fill in the form, save. The list updates in real-time via WebSocket across all dashboards. Pill-shaped badges show warning/expired counts at a glance. Edit, reset, or delete any timer from the management dialog.
 
 ### Option 2 — Service call
 
@@ -68,7 +71,20 @@ A recurring timer's `next_due` rolls forward by its interval/cron. A one-time ti
 
 ## Dashboard recipes
 
-### Option A — Mushroom template card (recommended)
+### Option A — task-timers-card (recommended)
+
+The integration ships its own Lovelace card that works out of the box:
+
+```yaml
+type: custom:task-timers-card
+title: Task Timers   # optional
+```
+
+Shows all timers with green/orange/red status dots, pill-shaped warning/expired badges, and a
+"Manage all timers" button for CRUD. Real-time updates via WebSocket. Styled to match Mushroom
+cards using `--mush-*` CSS variables — it inherits your HA theme automatically.
+
+### Option B — Mushroom template card
 
 [Mushroom](https://github.com/piitaya/lovelace-mushroom) is a HACS frontend collection. If you already use it (or are happy to install it), `mushroom-template-card` lets you build a tidy "tasks due" tile that colours itself by status:
 
@@ -96,7 +112,7 @@ tap_action:
 
 Wrap several of these in a `vertical-stack` (or `mushroom-chips-card`) to get a dashboard of all your maintenance tasks.
 
-### Option B — No HACS frontend dependency (built-in entities card)
+### Option C — No HACS frontend dependency (built-in entities card)
 
 If you'd rather not pull in mushroom, the native `entities` card works fine:
 
@@ -126,7 +142,7 @@ card:
   content: "**AC Filter is overdue!**"
 ```
 
-### Option C — Auto-entities (one card, all your timers)
+### Option D — Auto-entities (one card, all your timers)
 
 If you have [auto-entities](https://github.com/thomasloven/lovelace-auto-entities) installed, you can render every task timer dynamically without listing them:
 
@@ -198,9 +214,16 @@ Or trigger off the timestamp directly:
 - `0 0 * * MON` — every Monday at midnight
 - `0 0 1 1 *` — January 1st
 
-## Why not custom Lovelace cards?
+## Design
 
-Earlier versions shipped two bespoke Lit cards. Maintaining a no-build Lit bundle that works inside HA's iframe sandbox turned out to be far more brittle than just exposing the data as sensors and letting users compose dashboards out of the cards they already use. v1.1.0 dropped the cards entirely in favour of `sensor.*` entities — see the [CHANGELOG](CHANGELOG.md) for details.
+The integration takes a "sensors first, card optional" approach. Every timer is a native
+`sensor.*` entity so automations, templates, voice assistants, and any dashboard card work
+without this integration's card being present.
+
+The included `task-timers-card` is a vanilla `HTMLElement` custom card — no Lit, no Webpack,
+no build step. It uses HA's `hass.callApi()` and WebSocket subscription for real-time updates,
+and inherits your theme automatically via Mushroom-compatible CSS variables. The full-screen
+CRUD dialog keeps dashboards clean while giving you full timer management in one click.
 
 ## Support
 

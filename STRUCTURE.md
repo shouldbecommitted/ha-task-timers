@@ -37,7 +37,7 @@ ha-task-timers/
 │       │   ├── icon.png
 │       │   └── icon@2x.png
 │       └── www/
-│           └── admin-panel.html        # Sidebar iframe admin UI
+│           └── task-timers-card.js       # Lovelace custom card (vanilla HTMLElement)
 │
 └── images/
     └── icon.svg                        # Project logo
@@ -46,16 +46,16 @@ ha-task-timers/
 ## Key Files
 
 ### Backend (Python)
-- `__init__.py` — Entry setup, service registration, admin panel wiring
+- `__init__.py` — Entry setup, service registration, static assets + WebSocket registration
 - `timer_manager.py` — `Timer` and `TimerManager` — all scheduling logic
 - `coordinator.py` — 1-min polling loop, expiry detection, persistent notifications, events
 - `storage.py` — HA `Store`-backed timer + history persistence
 - `sensor.py` — One `TaskTimerSensor` entity per timer, dynamic add/remove via dispatcher
-- `views.py` — REST API (`/api/task_timers/list`, `/create`, `/update/{id}`, `/reset/{id}`, `/delete/{id}`)
+- `views.py` — REST API (`/api/task_timers/*`) + WebSocket list/subscribe handlers for real-time updates
 - `config_flow.py` — Single-instance UI config flow
 
-### Frontend (HTML/CSS/JS)
-- `www/admin-panel.html` — Self-contained sidebar iframe: timer CRUD, form validation, auto-refresh, light/dark theme
+### Frontend
+- `www/task-timers-card.js` — Standalone Lovelace custom card (vanilla `HTMLElement`, no build step). Summary mode with pill-shaped status badges + timer list. Full-screen dialog for CRUD. Real-time updates via WebSocket subscription. Styled to match Mushroom cards using `--mush-*` CSS variables and `rgb(var(--rgb-*))` colour system.
 
 ### CI/CD
 - `.github/workflows/lint.yaml` — Black + flake8 on push/PR

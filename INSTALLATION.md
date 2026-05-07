@@ -23,12 +23,42 @@
 3. Click **Install**
 4. **Restart Home Assistant** (Settings > System > Restart)
 
-### 3. View Timers in Your Dashboard
+### 3. Add the Lovelace Card
 
-Each timer is exposed as a `sensor.*` entity with `device_class: timestamp`.
-The native value is the next due date — useful with Mushroom or Tile cards.
+The integration ships with a native Lovelace custom card that shows all your timers with warning/expired badges and a full management dialog.
 
-#### Mushroom Template Card (recommended):
+1. Go to **Settings → Dashboards → Resources** (three-dot menu, top right)
+2. Click **Add Resource** and enter:
+   ```
+   URL: /task_timers_panel/task-timers-card.js
+   Type: JavaScript Module
+   ```
+3. Click **Create** and close the dialog.
+4. Edit any dashboard, click **Add Card**, and search for **Task Timers** under custom cards.
+5. Configure it:
+   ```yaml
+   type: custom:task-timers-card
+   title: Task Timers   # optional, defaults to "Task Timers"
+   ```
+
+The card **matches Mushroom's design language** out of the box — it uses `--mush-*` CSS variables
+and `rgb(var(--rgb-*))` colour tokens, so it blends seamlessly alongside other Mushroom cards.
+No theme configuration needed.
+
+### 4. View Timers in Your Dashboard
+
+Each timer is also exposed as a `sensor.*` entity with `device_class: timestamp` — useful for
+automations, conditional cards, or composing your own dashboard layouts.
+
+#### Using the built-in card (recommended):
+```yaml
+type: custom:task-timers-card
+```
+Shows all timers with status dots (green/orange/red), pill-shaped warning/expired count badges,
+and a "Manage all timers" button that opens a full-screen CRUD dialog. Real-time updates
+via WebSocket — no polling.
+
+#### Mushroom Template Card:
 ```yaml
 type: custom:mushroom-template-card
 entity: sensor.my_task_timer
@@ -55,15 +85,11 @@ entities:
 
 See [EXAMPLES.md](EXAMPLES.md) for more dashboard recipes.
 
-### 4. Configure Timers
+### 5. Configure Timers
 
-1. Go to **Settings → Devices & Services → Task Timers**
-2. Click **Create Automation** or access the admin panel
-3. Enter timer details:
-   - Name (e.g., "AC Filter")
-   - Type (One-time or Recurring)
-   - Interval or cron pattern
-   - Notification preferences
+1. Click **Manage all timers** on the task-timers card in your dashboard
+2. Click **+ Add Timer**, fill in the form, and save
+3. Timers update in real-time across all dashboards via WebSocket
 
 ## Troubleshooting
 
