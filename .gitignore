@@ -36,3 +36,7 @@ htmlcov/
 node_modules/
 npm-debug.log
 yarn-error.log
+
+# docs
+.superpowers/
+docs/
