@@ -15,7 +15,6 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .const import (
     DOMAIN,
-    EVENT_TIMER_EXPIRED,
     SIGNAL_TIMER_ADDED,
     SIGNAL_TIMER_REMOVED,
     SIGNAL_TIMER_UPDATED,
@@ -253,9 +252,7 @@ async def websocket_subscribe_timers(
     @callback
     def push_update(*_args: Any) -> None:
         data = {"timers": _serialize_all_timers(timer_manager)}
-        connection.send_message(
-            {"id": msg["id"], "type": "event", "event": data}
-        )
+        connection.send_message({"id": msg["id"], "type": "event", "event": data})
 
     unsubs = [
         async_dispatcher_connect(hass, SIGNAL_TIMER_ADDED, push_update),
@@ -273,5 +270,7 @@ async def websocket_subscribe_timers(
 
 
 def register_websocket_handlers(hass: HomeAssistant) -> None:
-    websocket_api.async_register_command(hass, "task_timers/list", websocket_list_timers)
+    websocket_api.async_register_command(
+        hass, "task_timers/list", websocket_list_timers
+    )
     websocket_api.async_register_command(hass, websocket_subscribe_timers)
