@@ -6,11 +6,20 @@ import logging
 from http import HTTPStatus
 from typing import Any
 
+import voluptuous as vol
 from aiohttp import web
+from homeassistant.components import websocket_api
 from homeassistant.components.http import HomeAssistantView
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    EVENT_TIMER_EXPIRED,
+    SIGNAL_TIMER_ADDED,
+    SIGNAL_TIMER_REMOVED,
+    SIGNAL_TIMER_UPDATED,
+)
 from .coordinator import TaskTimersCoordinator
 from .storage import TaskTimersStorage
 from .timer_manager import Timer, TimerManager
@@ -210,3 +219,59 @@ def register_views(hass: HomeAssistant) -> None:
     hass.http.register_view(TaskTimersUpdateView(hass))
     hass.http.register_view(TaskTimersResetView(hass))
     hass.http.register_view(TaskTimersDeleteView(hass))
+
+
+def _serialize_all_timers(timer_manager: TimerManager) -> list[dict[str, Any]]:
+    return [_serialize_timer(t) for t in timer_manager.list_timers()]
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "task_timers/list",
+    }
+)
+@websocket_api.async_response
+async def websocket_list_timers(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    timer_manager: TimerManager = hass.data[DOMAIN]["timer_manager"]
+    timers = _serialize_all_timers(timer_manager)
+    connection.send_result(msg["id"], {"timers": timers})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "task_timers/subscribe",
+    }
+)
+@websocket_api.async_response
+async def websocket_subscribe_timers(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    timer_manager: TimerManager = hass.data[DOMAIN]["timer_manager"]
+
+    @callback
+    def push_update(*_args: Any) -> None:
+        data = {"timers": _serialize_all_timers(timer_manager)}
+        connection.send_message(
+            {"id": msg["id"], "type": "event", "event": data}
+        )
+
+    unsubs = [
+        async_dispatcher_connect(hass, SIGNAL_TIMER_ADDED, push_update),
+        async_dispatcher_connect(hass, SIGNAL_TIMER_REMOVED, push_update),
+        async_dispatcher_connect(hass, SIGNAL_TIMER_UPDATED, push_update),
+    ]
+
+    @callback
+    def unsubscribe() -> None:
+        for unsub in unsubs:
+            unsub()
+
+    connection.subscriptions[msg["id"]] = unsubscribe
+    connection.send_result(msg["id"])
+
+
+def register_websocket_handlers(hass: HomeAssistant) -> None:
+    websocket_api.async_register_command(hass, "task_timers/list", websocket_list_timers)
+    websocket_api.async_register_command(hass, websocket_subscribe_timers)

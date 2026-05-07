@@ -20,7 +20,7 @@ from .const import (
 from .coordinator import TaskTimersCoordinator
 from .storage import TaskTimersStorage
 from .timer_manager import TimerManager
-from .views import register_views
+from .views import register_views, register_websocket_handlers
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
@@ -86,6 +86,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # REST views, static panel assets, and sidebar panel — once per HA instance
     await _async_register_admin_panel(hass)
+
+    # WebSocket handlers for real-time timer updates
+    register_websocket_handlers(hass)
 
     # Forward to sensor platform — each timer becomes a TIMESTAMP sensor entity
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
