@@ -11,6 +11,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     SIGNAL_TIMER_ADDED,
     SIGNAL_TIMER_REMOVED,
+    SIGNAL_TIMER_UPDATED,
     TIMER_ONE_TIME,
     TIMER_RECURRING,
 )
@@ -217,6 +218,7 @@ class TimerManager:
         if timer := self.get_timer(timer_id):
             timer.reset(self.storage)
             await self.storage.async_save()
+            async_dispatcher_send(self.hass, SIGNAL_TIMER_UPDATED, timer_id)
             return True
         return False
 
@@ -249,5 +251,6 @@ class TimerManager:
 
             self.storage.update_timer(timer_id, timer.data)
             _LOGGER.info(f"Updated timer: {timer.name}")
+            async_dispatcher_send(self.hass, SIGNAL_TIMER_UPDATED, timer_id)
             return True
         return False
